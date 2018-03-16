@@ -1,0 +1,31 @@
+CC       = cc
+TARGET   = qq_sh_server
+
+
+default: preparation build
+
+
+preparation:
+	test -d objs || mkdir objs && rm -f objs/*
+
+
+build:
+	$(MAKE) -f core/Makefile
+	$(MAKE) -f os/Makefile
+	$(MAKE) -f event/Makefile
+	$(MAKE) -f business/Makefile
+
+	$(CC) objs/*.o -o objs/$(TARGET)
+
+
+clean:
+	rm -rf objs
+
+
+install:
+	test -d /usr/local/$(TARGET) \
+		|| mkdir /usr/local/$(TARGET) \
+		&& rm -f /usr/local/$(TARGET)/*
+
+	cp objs/$(TARGET) /usr/local/$(TARGET)/
+	touch /usr/local/$(TARGET)/log
