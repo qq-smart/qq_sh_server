@@ -12,12 +12,11 @@ static int                  ep = -1;
 static struct epoll_event  *event_list = NULL;
 static qq_uint_t            nevents;
 
-
 qq_int_t
-qq_epoll_init(qq_cycle_t *cycle)
+qq_epoll_init(void)
 {
     if (ep == -1) {
-        ep = epoll_create(cycle->connection_n / 2);
+        ep = epoll_create(QQ_CONNECTION_NUMBER / 2);
 
         if (ep == -1) {
             qq_log_error("epoll_create() failed");
@@ -26,12 +25,10 @@ qq_epoll_init(qq_cycle_t *cycle)
     }
 
     nevents = QQ_EVENT_NUMBER;
-
     if (event_list) {
         free(event_list);
     }
-
-    event_list = qq_alloc(sizeof(struct epoll_event) * nevents);
+    //event_list = qq_alloc(sizeof(struct epoll_event) * nevents);
     if (event_list == NULL) {
         return QQ_ERROR;
     }
@@ -40,18 +37,15 @@ qq_epoll_init(qq_cycle_t *cycle)
 }
 
 void
-qq_epoll_done(qq_cycle_t *cycle)
+qq_epoll_done(void)
 {
     if (close(ep) == -1) {
         qq_log_error("epoll close() failed");
     }
-
     ep = -1;
 
     free(event_list);
-
     event_list = NULL;
-    nevents = 0;
 }
 
 qq_int_t
@@ -88,7 +82,7 @@ qq_epoll_add_event(qq_event_t *ev, qq_int_t event)
     qq_log_debug("epoll add event: fd:%d op:%d ev:%08XD", c->fd, op, ee.events);
 
     if (epoll_ctl(ep, op, c->fd, &ee) == -1) {
-        ngx_log_error("epoll_ctl(%d, %d) failed", op, c->fd);
+        qq_log_error("epoll_ctl(%d, %d) failed", op, c->fd);
         return QQ_ERROR;
     }
 
@@ -194,9 +188,9 @@ qq_epoll_del_connection(qq_connection_t *c, qq_uint_t flags)
 }
 
 qq_int_t
-qq_epoll_process_events(qq_cycle_t *cycle, qq_msec_t timer, qq_uint_t flags)
+qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
 {
-    int                events;
+    /*int                events;
     uint32_t           revents;
     qq_int_t           instance, i;
     qq_uint_t          level;
@@ -207,7 +201,7 @@ qq_epoll_process_events(qq_cycle_t *cycle, qq_msec_t timer, qq_uint_t flags)
 
     qq_log_debug("epoll timer: %d", timer);
 
-    events = epoll_wait(ep, event_list, (int) nevents, timer);
+    events = epoll_wait(ep, event_list, (int) QQ_EVENT_NUMBER, timer);
 
     err = (events == -1) ? qq_errno : 0;
 
@@ -282,7 +276,7 @@ qq_epoll_process_events(qq_cycle_t *cycle, qq_msec_t timer, qq_uint_t flags)
                 wev->handler(wev);
             }
         }
-    }
+    }*/
 
     return QQ_OK;
 }

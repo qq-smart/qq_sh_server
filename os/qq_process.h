@@ -12,9 +12,6 @@
 #include "qq_core.h"
 
 
-extern qq_pid_t  qq_pid;
-
-
 void qq_master_process_cycle(void);
 
 

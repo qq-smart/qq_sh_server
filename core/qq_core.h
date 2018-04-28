@@ -23,13 +23,16 @@
 #define QQ_FALSE  0
 
 
+#include "qq_atomic.h"
 #include "qq_string.h"
 #include "qq_log.h"
 #include "qq_time.h"
-
 #include "qq_process.h"
-
+#include "qq_alloc.h"
+#include "qq_files.h"
 #include "qq_event.h"
+#include "qq_connection.h"
+#include "qq_epoll.h"
 
 
 #endif /* _QQ_CORE_H_INCLUDED_ */

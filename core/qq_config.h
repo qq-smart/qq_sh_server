@@ -21,6 +21,8 @@ typedef qq_uint_t  qq_rbtree_key_t;
 typedef qq_int_t   qq_rbtree_key_int_t;
 typedef qq_uint_t  qq_msec_t;
 typedef qq_int_t   qq_msec_int_t;
+typedef int        qq_socket_t;
+typedef int        qq_err_t;
 
 
 #endif /* _QQ_CONFIG_H_INCLUDED_ */

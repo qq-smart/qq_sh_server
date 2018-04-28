@@ -20,6 +20,7 @@ build:
 
 clean:
 	rm -rf objs
+	rm -rf *.o
 
 
 install:
@@ -28,4 +29,3 @@ install:
 		&& rm -f /usr/local/$(TARGET)/*
 
 	cp objs/$(TARGET) /usr/local/$(TARGET)/
-	touch /usr/local/$(TARGET)/log
