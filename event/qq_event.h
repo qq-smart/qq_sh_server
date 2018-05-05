@@ -49,15 +49,14 @@ typedef struct {
 
     qq_event_handler_pt  handler;
 
-    //ngx_log_t       *log;
-
-    //qq_rbtree_node_t   timer;
-    //qq_queue_t         queue;
+    qq_rbtree_node_t   timer;
+    qq_queue_t         queue;
 } qq_event_t;
 
 
 #define QQ_READ_EVENT     0
 #define QQ_WRITE_EVENT    1
 #define QQ_CLOSE_EVENT    2
+#define QQ_UPDATE_TIME    4
 
 #endif /* _QQ_EVENT_H_INCLUDED_ */

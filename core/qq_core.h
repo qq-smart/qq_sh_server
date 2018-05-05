@@ -23,7 +23,8 @@
 #define QQ_FALSE  0
 
 
-#include "qq_atomic.h"
+#include "qq_queue.h"
+#include "qq_rbtree.h"
 #include "qq_string.h"
 #include "qq_log.h"
 #include "qq_time.h"
@@ -32,6 +33,7 @@
 #include "qq_files.h"
 #include "qq_event.h"
 #include "qq_connection.h"
+#include "qq_event_timer.h"
 #include "qq_epoll.h"
 
 

@@ -8,7 +8,6 @@
 #include "qq_core.h"
 
 
-static   qq_atomic_t    qq_time_lock;
 volatile qq_msec_t      qq_current_msec;
 
 volatile qq_str_t       qq_cached_err_log_time;
@@ -32,10 +31,6 @@ qq_time_update(void)
     qq_uint_t        msec;
     struct timeval   tv;
 
-    if (!qq_trylock(&qq_time_lock)) {
-        return;
-    }
-
     gettimeofday(&tv, NULL);
 
     sec = tv.tv_sec;
@@ -51,11 +46,7 @@ qq_time_update(void)
                    t.tm_mday, t.tm_hour,
                    t.tm_min,  t.tm_sec);
 
-    qq_memory_barrier();
-
     qq_cached_err_log_time.data = p;
-
-    qq_unlock(&qq_time_lock);
 }
 
 void

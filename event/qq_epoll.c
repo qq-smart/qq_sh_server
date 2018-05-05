@@ -12,11 +12,12 @@ static int                  ep = -1;
 static struct epoll_event  *event_list = NULL;
 static qq_uint_t            nevents;
 
+
 qq_int_t
 qq_epoll_init(void)
 {
     if (ep == -1) {
-        ep = epoll_create(QQ_CONNECTION_NUMBER / 2);
+        ep = epoll_create(QQ_CONNECTION_NUMBER);
 
         if (ep == -1) {
             qq_log_error("epoll_create() failed");
@@ -28,7 +29,7 @@ qq_epoll_init(void)
     if (event_list) {
         free(event_list);
     }
-    //event_list = qq_alloc(sizeof(struct epoll_event) * nevents);
+    event_list = qq_alloc(sizeof(struct epoll_event) * nevents);
     if (event_list == NULL) {
         return QQ_ERROR;
     }
@@ -190,20 +191,19 @@ qq_epoll_del_connection(qq_connection_t *c, qq_uint_t flags)
 qq_int_t
 qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
 {
-    /*int                events;
+    int                events;
     uint32_t           revents;
     qq_int_t           instance, i;
     qq_uint_t          level;
     qq_err_t           err;
     qq_event_t        *rev, *wev;
-    qq_queue_t        *queue;
     qq_connection_t   *c;
 
     qq_log_debug("epoll timer: %d", timer);
 
     events = epoll_wait(ep, event_list, (int) QQ_EVENT_NUMBER, timer);
 
-    err = (events == -1) ? qq_errno : 0;
+    err = (events == -1) ? errno : 0;
 
     if (flags & QQ_UPDATE_TIME) {
         qq_time_update();
@@ -247,20 +247,10 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
 
         if ((revents & EPOLLIN) && rev->active) {
             rev->ready = 1;
-
-            if (flags & QQ_POST_EVENTS) {
-                queue = rev->accept ? &qq_posted_accept_events
-                                    : &qq_posted_events;
-
-                qq_post_event(rev, queue);
-
-            } else {
-                rev->handler(rev);
-            }
+            rev->handler(rev);
         }
 
         wev = c->write;
-
         if ((revents & EPOLLOUT) && wev->active) {
             if (c->fd == -1 || wev->instance != instance) {
                 qq_log_debug("epoll: stale event %p", c);
@@ -268,15 +258,9 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
             }
 
             wev->ready = 1;
-
-            if (flags & QQ_POST_EVENTS) {
-                qq_post_event(wev, &qq_posted_events);
-
-            } else {
-                wev->handler(wev);
-            }
+            wev->handler(wev);
         }
-    }*/
+    }
 
     return QQ_OK;
 }
