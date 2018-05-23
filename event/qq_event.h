@@ -12,21 +12,35 @@
 #include "qq_core.h"
 
 
-typedef void (*qq_event_handler_pt)(void *ev);
+#define QQ_INVALID_INDEX  0xd0d0d0d0
 
 
-typedef struct {
+struct qq_event_s {
     void            *data;
 
     unsigned         write:1;
+
     unsigned         accept:1;
+
+    /* used to detect the stale events in kqueue and epoll */
     unsigned         instance:1;
+
+    /*
+     * the event was passed or would be passed to a kernel;
+     * in aio mode - operation was posted.
+     */
     unsigned         active:1;
+
     unsigned         disabled:1;
+
+    /* the ready event; in aio mode 0 means that no operation can be posted */
     unsigned         ready:1;
 
     unsigned         oneshot:1;
+
+    /* aio operation is complete */
     unsigned         complete:1;
+
     unsigned         eof:1;
     unsigned         error:1;
 
@@ -36,27 +50,46 @@ typedef struct {
     unsigned         delayed:1;
 
     unsigned         deferred_accept:1;
+
+    /* the pending eof reported by kqueue, epoll or in aio chain operation */
     unsigned         pending_eof:1;
 
     unsigned         posted:1;
 
     unsigned         closed:1;
 
+    /* to test on worker exit */
     unsigned         channel:1;
     unsigned         resolver:1;
 
     unsigned         cancelable:1;
 
+    unsigned         available:1;
+
     qq_event_handler_pt  handler;
 
+    qq_uint_t       index;
+
     qq_rbtree_node_t   timer;
-    qq_queue_t         queue;
-} qq_event_t;
+
+    /* the posted queue */
+    qq_queue_t      queue;
+};
 
 
-#define QQ_READ_EVENT     0
-#define QQ_WRITE_EVENT    1
-#define QQ_CLOSE_EVENT    2
-#define QQ_UPDATE_TIME    4
+#define QQ_READ_EVENT     1
+#define QQ_WRITE_EVENT    2
+
+#define QQ_CLOSE_EVENT    1
+#define QQ_DISABLE_EVENT  2
+
+#define QQ_UPDATE_TIME    1
+
+
+qq_int_t qq_event_init(qq_cycle_t *cycle);
+void qq_events_process(void);
+qq_int_t qq_handle_read_event(qq_event_t *rev);
+qq_int_t qq_handle_write_event(qq_event_t *wev);
+
 
 #endif /* _QQ_EVENT_H_INCLUDED_ */

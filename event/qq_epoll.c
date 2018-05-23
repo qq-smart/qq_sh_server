@@ -20,7 +20,7 @@ qq_epoll_init(void)
         ep = epoll_create(QQ_CONNECTION_NUMBER);
 
         if (ep == -1) {
-            qq_log_error("epoll_create() failed");
+            qq_log_error(errno, "epoll_create() failed");
             return QQ_ERROR;
         }
     }
@@ -41,7 +41,7 @@ void
 qq_epoll_done(void)
 {
     if (close(ep) == -1) {
-        qq_log_error("epoll close() failed");
+        qq_log_error(errno, "epoll close() failed");
     }
     ep = -1;
 
@@ -83,7 +83,7 @@ qq_epoll_add_event(qq_event_t *ev, qq_int_t event)
     qq_log_debug("epoll add event: fd:%d op:%d ev:%08XD", c->fd, op, ee.events);
 
     if (epoll_ctl(ep, op, c->fd, &ee) == -1) {
-        qq_log_error("epoll_ctl(%d, %d) failed", op, c->fd);
+        qq_log_error(errno, "epoll_ctl(%d, %d) failed", op, c->fd);
         return QQ_ERROR;
     }
 
@@ -129,7 +129,7 @@ qq_epoll_del_event(qq_event_t *ev, qq_int_t event, qq_uint_t flags)
     qq_log_debug("epoll del event: fd:%d op:%d ev:%08XD", c->fd, op, ee.events);
 
     if (epoll_ctl(ep, op, c->fd, &ee) == -1) {
-        qq_log_error("epoll_ctl(%d, %d) failed", op, c->fd);
+        qq_log_error(errno, "epoll_ctl(%d, %d) failed", op, c->fd);
         return QQ_ERROR;
     }
 
@@ -149,7 +149,7 @@ qq_epoll_add_connection(qq_connection_t *c)
     qq_log_debug("epoll add connection: fd:%d ev:%08XD", c->fd, ee.events);
 
     if (epoll_ctl(ep, EPOLL_CTL_ADD, c->fd, &ee) == -1) {
-        qq_log_error("epoll_ctl(EPOLL_CTL_ADD, %d) failed", c->fd);
+        qq_log_error(errno, "epoll_ctl(EPOLL_CTL_ADD, %d) failed", c->fd);
         return QQ_ERROR;
     }
 
@@ -162,7 +162,6 @@ qq_epoll_add_connection(qq_connection_t *c)
 qq_int_t
 qq_epoll_del_connection(qq_connection_t *c, qq_uint_t flags)
 {
-    int                 op;
     struct epoll_event  ee;
 
     if (flags & QQ_CLOSE_EVENT) {
@@ -173,12 +172,11 @@ qq_epoll_del_connection(qq_connection_t *c, qq_uint_t flags)
 
     qq_log_debug("epoll del connection: fd:%d", c->fd);
 
-    op = EPOLL_CTL_DEL;
     ee.events = 0;
     ee.data.ptr = NULL;
 
-    if (epoll_ctl(ep, op, c->fd, &ee) == -1) {
-        qq_log_error("epoll_ctl(%d, %d) failed", op, c->fd);
+    if (epoll_ctl(ep, EPOLL_CTL_DEL, c->fd, &ee) == -1) {
+        qq_log_error(errno, "epoll_ctl(EPOLL_CTL_DEL, %d) failed", c->fd);
         return QQ_ERROR;
     }
 
@@ -201,7 +199,7 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
 
     qq_log_debug("epoll timer: %d", timer);
 
-    events = epoll_wait(ep, event_list, (int) QQ_EVENT_NUMBER, timer);
+    events = epoll_wait(ep, event_list, (int) nevents, timer);
 
     err = (events == -1) ? errno : 0;
 
@@ -210,7 +208,7 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
     }
 
     if (err) {
-        qq_log_error("epoll_wait() failed");
+        qq_log_error(err, "epoll_wait() failed");
         return QQ_ERROR;
     }
 
@@ -219,7 +217,7 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
             return QQ_OK;
         }
 
-        qq_log_error("epoll_wait() returned no events without timeout");
+        qq_log_error(err, "epoll_wait() returned no events without timeout");
         return QQ_ERROR;
     }
 

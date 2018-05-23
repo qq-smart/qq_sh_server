@@ -73,33 +73,3 @@ qq_event_expire_timers(void)
         ev->handler(ev);
     }
 }
-
-
-qq_int_t
-qq_event_no_timers_left(void)
-{
-    qq_event_t        *ev;
-    qq_rbtree_node_t  *node, *root, *sentinel;
-
-    sentinel = qq_event_timer_rbtree.sentinel;
-    root     = qq_event_timer_rbtree.root;
-
-    if (root == sentinel) {
-        return QQ_OK;
-    }
-
-    for (node = qq_rbtree_min(root, sentinel);
-         node;
-         node = qq_rbtree_next(&qq_event_timer_rbtree, node))
-    {
-        ev = (qq_event_t *) ((char *) node - offsetof(qq_event_t, timer));
-
-        if (!ev->cancelable) {
-            return QQ_AGAIN;
-        }
-    }
-
-    /* only cancelable timers left */
-
-    return QQ_OK;
-}

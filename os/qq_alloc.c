@@ -8,6 +8,11 @@
 #include "qq_core.h"
 
 
+qq_uint_t  qq_pagesize;
+qq_uint_t  qq_pagesize_shift;
+qq_uint_t  qq_cacheline_size;
+
+
 void *
 qq_alloc(size_t size)
 {
@@ -15,7 +20,7 @@ qq_alloc(size_t size)
 
     p = malloc(size);
     if (p == NULL) {
-        qq_log_error("malloc(%uz) failed", size);
+        qq_log_error(errno, "malloc(%uz) failed", size);
     }
 
     return p;
@@ -42,7 +47,7 @@ qq_memalign(size_t alignment, size_t size)
 
     p = memalign(alignment, size);
     if (p == NULL) {
-        qq_log_error("memalign(%uz, %uz) failed", alignment, size);
+        qq_log_error(errno, "memalign(%uz, %uz) failed", alignment, size);
     }
 
     return p;

@@ -13,7 +13,7 @@ build:
 	$(MAKE) -f core/Makefile
 	$(MAKE) -f os/Makefile
 	$(MAKE) -f event/Makefile
-	$(MAKE) -f business/Makefile
+	$(MAKE) -f app/Makefile
 
 	$(CC) objs/*.o -o objs/$(TARGET)
 

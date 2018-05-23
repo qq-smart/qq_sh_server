@@ -23,9 +23,10 @@ typedef struct {
 #define qq_str_set(str, text)  (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
 #define qq_str_null(str)       (str)->len = 0; (str)->data = NULL
 
-
 #define qq_tolower(c)      (u_char) ((c >= 'A' && c <= 'Z') ? (c | 0x20) : c)
 #define qq_toupper(c)      (u_char) ((c >= 'a' && c <= 'z') ? (c & ~0x20) : c)
+
+size_t qq_strnlen(u_char *p, size_t n);
 
 
 typedef struct {

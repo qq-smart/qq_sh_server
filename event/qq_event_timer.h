@@ -12,15 +12,13 @@
 #include "qq_core.h"
 
 
-#define QQ_TIMER_INFINITE  (qq_msec_t) - 1
-
+#define QQ_TIMER_INFINITE    (qq_msec_t) - 1
 #define QQ_TIMER_LAZY_DELAY  300
 
 
 qq_int_t qq_event_timer_init(void);
 qq_msec_t qq_event_find_timer(void);
 void qq_event_expire_timers(void);
-qq_int_t qq_event_no_timers_left(void);
 
 
 extern qq_rbtree_t  qq_event_timer_rbtree;

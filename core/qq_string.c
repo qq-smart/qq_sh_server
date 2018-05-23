@@ -8,6 +8,22 @@
 #include "qq_core.h"
 
 
+size_t
+qq_strnlen(u_char *p, size_t n)
+{
+    size_t  i;
+
+    for (i = 0; i < n; i++) {
+
+        if (p[i] == '\0') {
+            return i;
+        }
+    }
+
+    return n;
+}
+
+
 void
 qq_str_rbtree_insert_value(qq_rbtree_node_t *temp,
     qq_rbtree_node_t *node, qq_rbtree_node_t *sentinel)

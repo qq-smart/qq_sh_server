@@ -11,23 +11,7 @@
 static qq_log_t qq_log;
 
 
-static void
-qq_log_error_debug_core(qq_err_t errorno, const char *fmt, va_list args)
-{
-    int  len;
-
-    memcpy(qq_log.time_ptr, qq_cached_err_log_time.data, qq_cached_err_log_time.len);
-
-    if (errorno) {
-        sprintf(qq_log.errno_ptr, "%10d   ", errorno);
-        len = vsprintf(qq_log.err_desc_ptr, fmt, args);
-        write(qq_log.err_fd, qq_log.str, qq_log.err_prefix_len + len);
-    }
-    else {
-        len = vsprintf(qq_log.debug_desc_ptr, fmt, args);
-        write(STDERR_FILENO, qq_log.str, qq_log.debug_prefix_len + len);
-    }
-}
+static void qq_log_error_debug_core(int type, qq_err_t err, const char *fmt, va_list args);
 
 
 void
@@ -70,12 +54,12 @@ qq_log_init(qq_pid_t pid)
 }
 
 void
-qq_log_error(const char *fmt, ...)
+qq_log_error(qq_err_t err, const char *fmt, ...)
 {
     va_list  args;
 
     va_start(args, fmt);
-    qq_log_error_debug_core(errno, fmt, args);
+    qq_log_error_debug_core(QQ_LOG_ERROR, err, fmt, args);
     va_end(args);
 }
 
@@ -87,8 +71,26 @@ qq_log_debug(const char *fmt, ...)
     va_list  args;
 
     va_start(args, fmt);
-    qq_log_error_debug_core(0, fmt, args);
+    qq_log_error_debug_core(QQ_LOG_DEBUG, 0, fmt, args);
     va_end(args);
 }
 
 #endif
+
+static void
+qq_log_error_debug_core(int type, qq_err_t err, const char *fmt, va_list args)
+{
+    int  len;
+
+    memcpy(qq_log.time_ptr, qq_cached_err_log_time.data, qq_cached_err_log_time.len);
+
+    if (type == QQ_LOG_ERROR) {
+        sprintf(qq_log.errno_ptr, "%10d   ", err);
+        len = vsprintf(qq_log.err_desc_ptr, fmt, args);
+        write(qq_log.err_fd, qq_log.str, qq_log.err_prefix_len + len);
+    }
+    else if (type == QQ_LOG_DEBUG){
+        len = vsprintf(qq_log.debug_desc_ptr, fmt, args);
+        write(STDERR_FILENO, qq_log.str, qq_log.debug_prefix_len + len);
+    }
+}

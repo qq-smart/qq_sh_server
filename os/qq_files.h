@@ -19,7 +19,6 @@
 #define qq_delete_file(name)    unlink((const char *) name)
 
 
-
 #define QQ_FILE_RDONLY          O_RDONLY
 #define QQ_FILE_WRONLY          O_WRONLY
 #define QQ_FILE_RDWR            O_RDWR

@@ -25,4 +25,11 @@ typedef int        qq_socket_t;
 typedef int        qq_err_t;
 
 
+#define QQ_ALIGNMENT   sizeof(unsigned long)
+
+#define qq_align(d, a)     (((d) + (a - 1)) & ~(a - 1))
+#define qq_align_ptr(p, a)                                                   \
+    (u_char *) (((uintptr_t) (p) + ((uintptr_t) a - 1)) & ~((uintptr_t) a - 1))
+
+
 #endif /* _QQ_CONFIG_H_INCLUDED_ */

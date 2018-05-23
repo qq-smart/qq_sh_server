@@ -25,6 +25,9 @@
 
 #define QQ_ERR_LOG_FILE_NAME "log"
 
+#define QQ_LOG_DEBUG     0
+#define QQ_LOG_ERROR     1
+
 
 typedef struct {
     u_char    str[QQ_MAX_LOG_STR];
@@ -43,17 +46,11 @@ typedef struct {
 
 
 void qq_log_init(qq_pid_t pid);
-
-void qq_log_error(const char *fmt, ...);
-
+void qq_log_error(qq_err_t err, const char *fmt, ...);
 #if (QQ_HAVE_DEBUG)
-
-void qq_log_debug(const char *fmt, ...);
-
+    void qq_log_debug(const char *fmt, ...);
 #else
-
-#define qq_log_debug(fmt, ...)
-
+    #define qq_log_debug(fmt, ...)
 #endif
 
 
