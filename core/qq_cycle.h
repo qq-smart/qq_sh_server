@@ -21,7 +21,7 @@ struct qq_cycle_s {
     qq_event_t              *write_events;
 
     qq_listening_t          *listening;
-    qq_uint_t                nlistening;
+    size_t                   nlistening;
 };
 
 

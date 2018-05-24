@@ -8,7 +8,7 @@
 #define _QQ_CONFIG_H_INCLUDED_
 
 
-#include "qq_headers.h"
+#include "qq_app_config.h"
 #include "qq_linux.h"
 
 

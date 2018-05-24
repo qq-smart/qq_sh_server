@@ -17,7 +17,7 @@ typedef struct qq_listening_s  qq_listening_t;
 struct qq_listening_s {
     qq_socket_t         fd;
 
-    struct sockaddr    *sockaddr;
+    struct sockaddr_in  sockaddr;
     socklen_t           socklen;    /* size of sockaddr */
     size_t              addr_text_max_len;
     qq_str_t            addr_text;
@@ -84,6 +84,8 @@ struct qq_listening_s {
 };
 
 
+void qq_create_listening(qq_listening_t *listening, int type, int port,
+    size_t pool_size, q_connection_handler_pt handler);
 qq_int_t qq_open_listening_sockets(qq_cycle_t *cycle);
 void qq_configure_listening_sockets(qq_cycle_t *cycle);
 void qq_close_listening_sockets(qq_cycle_t *cycle);

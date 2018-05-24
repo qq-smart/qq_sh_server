@@ -8,6 +8,18 @@
 #include "qq_core.h"
 
 
+void
+qq_create_listening(qq_listening_t *listening, int type, int port,
+    size_t pool_size, qq_connection_handler_pt handler)
+{
+    listening->sockaddr.sin_family = AF_INET;
+    listening->sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    listening->sockaddr.sin_port = htons(port);
+
+    listening->socklen = sizeof(struct sockaddr_in);
+}
+
+
 qq_int_t
 qq_open_listening_sockets(qq_cycle_t *cycle)
 {
