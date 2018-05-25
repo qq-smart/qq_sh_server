@@ -19,75 +19,28 @@ struct qq_listening_s {
 
     struct sockaddr_in  sockaddr;
     socklen_t           socklen;    /* size of sockaddr */
-    size_t              addr_text_max_len;
-    qq_str_t            addr_text;
+    char                addr_text[QQ_SOCKADDR_STRLEN];
+    int                 addr_text_len;
 
     int                 type;
 
     int                 backlog;
     int                 rcvbuf;
     int                 sndbuf;
-#if (QQ_HAVE_KEEPALIVE_TUNABLE)
-    int                 keepidle;
-    int                 keepintvl;
-    int                 keepcnt;
-#endif
 
     /* handler of accepted connection */
     qq_connection_handler_pt   handler;
 
     size_t              pool_size;
 
-    /* should be here because of the AcceptEx() preread */
-    size_t              post_accept_buffer_size;
-    /* should be here because of the deferred accept */
-    qq_msec_t           post_accept_timeout;
-
-    qq_listening_t     *next;
     qq_connection_t    *connection;
-
-    qq_uint_t           worker;
-
-    unsigned            open:1;
-    unsigned            remain:1;
-    unsigned            ignore:1;
-
-    unsigned            bound:1;       /* already bound */
-    unsigned            inherited:1;   /* inherited from previous process */
-    unsigned            nonblocking_accept:1;
-    unsigned            listen:1;
-    unsigned            nonblocking:1;
-    unsigned            shared:1;    /* shared between threads or processes */
-    unsigned            addr_ntop:1;
-    unsigned            wildcard:1;
-
-#if (QQ_HAVE_INET6)
-    unsigned            ipv6only:1;
-#endif
-    unsigned            reuseport:1;
-    unsigned            add_reuseport:1;
-    unsigned            keepalive:2;
-
-    unsigned            deferred_accept:1;
-    unsigned            delete_deferred:1;
-    unsigned            add_deferred:1;
-#if (QQ_HAVE_DEFERRED_ACCEPT && defined SO_ACCEPTFILTER)
-    char               *accept_filter;
-#endif
-#if (QQ_HAVE_SETFIB)
-    int                 setfib;
-#endif
-
-#if (QQ_HAVE_TCP_FASTOPEN)
-    int                 fastopen;
-#endif
 };
 
 
 void qq_create_listening(qq_listening_t *listening, int type, int port,
     size_t pool_size, q_connection_handler_pt handler);
 qq_int_t qq_open_listening_sockets(qq_cycle_t *cycle);
-void qq_configure_listening_sockets(qq_cycle_t *cycle);
+qq_int_t qq_configure_listening_sockets(qq_cycle_t *cycle);
 void qq_close_listening_sockets(qq_cycle_t *cycle);
 
 

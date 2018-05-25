@@ -15,163 +15,103 @@ qq_create_listening(qq_listening_t *listening, int type, int port,
     listening->sockaddr.sin_family = AF_INET;
     listening->sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     listening->sockaddr.sin_port = htons(port);
-
     listening->socklen = sizeof(struct sockaddr_in);
-}
 
+    listening->addr_text_len = qq_sock_ntop(&listening->sockaddr, listening->addr_text);
+    qq_log_debug("listening addr text: %s, addr text len: %d",
+        listening->addr_text, listening->addr_text_len);
+
+    listening->fd = (qq_socket_t) -1;
+    listening->type = type;
+
+    listening->backlog = QQ_LISTEN_BACKLOG;
+    listening->rcvbuf = QQ_SOCK_REVBUF_SIZE;
+    listening->sndbuf = QQ_SOCK_SNDBUF_SIZE;
+
+    listening->handler = handler;
+    listening->pool_size = pool_size;
+}
 
 qq_int_t
 qq_open_listening_sockets(qq_cycle_t *cycle)
 {
-    int              reuseaddr;
+    int              reuseaddr = 1;
     qq_uint_t        i, tries, failed;
     qq_err_t         err;
     qq_socket_t      s;
     qq_listening_t  *ls;
-
-    reuseaddr = 1;
-#if (QQ_SUPPRESS_WARN)
-    failed = 0;
-#endif
 
     for (tries = 5; tries; tries--) {
         failed = 0;
 
         ls = cycle->listening;
         for (i = 0; i < cycle->nlistening; i++) {
-            if (ls[i].ignore) {
-                continue;
-            }
-
-#if (QQ_HAVE_REUSEPORT)
-            if (ls[i].add_reuseport) {
-                int  reuseport = 1;
-
-                if (setsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT,
-                               (const void *) &reuseport, sizeof(int))
-                    == -1)
-                {
-                    qq_log_error(errno,
-                                  "setsockopt(SO_REUSEPORT) %V failed, ignored",
-                                  &ls[i].addr_text);
-                }
-
-                ls[i].add_reuseport = 0;
-            }
-#endif
-
             if (ls[i].fd != (qq_socket_t) -1) {
-                continue;
-            }
-
-            if (ls[i].inherited) {
                 continue;
             }
 
             s = socket(ls[i].sockaddr->sa_family, ls[i].type, 0);
             if (s == (qq_socket_t) -1) {
-                qq_log_error(errno, "create sockets %V failed", &ls[i].addr_text);
+                qq_log_error(errno, "create sockets %s failed", ls[i].addr_text);
                 return QQ_ERROR;
             }
 
             if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
-                           (const void *) &reuseaddr, sizeof(int))
+                          (const void *) &reuseaddr, sizeof(int))
                 == -1)
             {
-                qq_log_error(errno,
-                              "setsockopt(SO_REUSEADDR) %V failed",
-                              &ls[i].addr_text);
+                qq_log_error(errno, "setsockopt(SO_REUSEADDR) %s failed", ls[i].addr_text);
 
                 if (close(s) == -1) {
-                    qq_log_error(errno, "close sockets %V failed",
-                                  &ls[i].addr_text);
+                    qq_log_error(errno, "close sockets %s failed", ls[i].addr_text);
                 }
-
                 return QQ_ERROR;
             }
 
 #if (QQ_HAVE_REUSEPORT)
-            if (ls[i].reuseport) {
-                int  reuseport;
+            int  reuseport = 1;
+            if (setsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT,
+                          (const void *) &reuseport, sizeof(int))
+                == -1)
+            {
+                qq_log_error(errno, "setsockopt(SO_REUSEPORT) %s failed, ignored", ls[i].addr_text);
 
-                reuseport = 1;
-
-                if (setsockopt(s, SOL_SOCKET, SO_REUSEPORT,
-                               (const void *) &reuseport, sizeof(int))
-                    == -1)
-                {
-                    qq_log_error(errno,
-                                  "setsockopt(SO_REUSEPORT) %V failed",
-                                  &ls[i].addr_text);
-
-                    if (close(s) == -1) {
-                        qq_log_error(errno, "close sockets %V failed", &ls[i].addr_text);
-                    }
-
-                    return QQ_ERROR;
+                if (close(s) == -1) {
+                    qq_log_error(errno, "close sockets %s failed", ls[i].addr_text);
                 }
-            }
-#endif
-
-#if (QQ_HAVE_INET6 && defined IPV6_V6ONLY)
-            if (ls[i].sockaddr->sa_family == AF_INET6) {
-                int  ipv6only;
-
-                ipv6only = ls[i].ipv6only;
-
-                if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY,
-                               (const void *) &ipv6only, sizeof(int))
-                    == -1)
-                {
-                    qq_log_error(errno,
-                                  "setsockopt(IPV6_V6ONLY) %V failed, ignored",
-                                  &ls[i].addr_text);
-                }
+                return QQ_ERROR;
             }
 #endif
 
             if (qq_nonblocking(s) == -1) {
-                qq_log_error(errno, "set sockets nonblocking %V failed", &ls[i].addr_text);
+                qq_log_error(errno, "set sockets nonblocking %s failed", ls[i].addr_text);
                 if (close(s) == -1) {
-                    qq_log_error(errno, "close sockets %V failed", &ls[i].addr_text);
+                    qq_log_error(errno, "close sockets %s failed", ls[i].addr_text);
                 }
-
                 return QQ_ERROR;
             }
 
-            qq_log_debug("bind() %V #%d ", &ls[i].addr_text, s);
+            qq_log_debug("bind() %s #%d ", ls[i].addr_text, s);
 
-            if (bind(s, ls[i].sockaddr, ls[i].socklen) == -1) {
+            if (bind(s, (struct sockaddr *)&ls[i].sockaddr, ls[i].socklen) == -1) {
                 err = errno;
 
                 if (err != QQ_EADDRINUSE) {
-                    qq_log_error(err, "bind() to %V failed", &ls[i].addr_text);
+                    qq_log_error(err, "bind() to %s failed", ls[i].addr_text);
                 }
 
                 if (close(s) == -1) {
-                    qq_log_error(errno, "close sockets %V failed", &ls[i].addr_text);
+                    qq_log_error(errno, "close sockets %s failed", ls[i].addr_text);
                 }
 
                 if (err != QQ_EADDRINUSE) {
                     return QQ_ERROR;
                 }
 
+                failed = 1;
+
                 continue;
             }
-
-#if (QQ_HAVE_UNIX_DOMAIN)
-            if (ls[i].sockaddr->sa_family == AF_UNIX) {
-                mode_t   mode;
-                u_char  *name;
-
-                name = ls[i].addr_text.data + sizeof("unix:") - 1;
-                mode = (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
-
-                if (chmod((char *) name, mode) == -1) {
-                    qq_log_error(errno, "chmod() \"%s\" failed", name);
-                }
-            }
-#endif
 
             if (ls[i].type != SOCK_STREAM) {
                 ls[i].fd = s;
@@ -181,27 +121,27 @@ qq_open_listening_sockets(qq_cycle_t *cycle)
             if (listen(s, ls[i].backlog) == -1) {
                 err = errno;
                 if (err != QQ_EADDRINUSE) {
-                    qq_log_error(err,
-                                  "listen() to %V, backlog %d failed",
-                                  &ls[i].addr_text, ls[i].backlog);
+                    qq_log_error(err, "listen() to %s, backlog %d failed",
+                                 ls[i].addr_text, ls[i].backlog);
                 }
 
                 if (close(s) == -1) {
-                    qq_log_error(errno, "close sockets %V failed", &ls[i].addr_text);
+                    qq_log_error(errno, "close sockets %s failed", ls[i].addr_text);
                 }
 
                 if (err != QQ_EADDRINUSE) {
                     return QQ_ERROR;
                 }
 
+                failed = 1;
+
                 continue;
             }
 
-            ls[i].listen = 1;
             ls[i].fd = s;
         }
 
-        if (!failed) {
+        if (failed == 0) {
             break;
         }
 
@@ -217,7 +157,7 @@ qq_open_listening_sockets(qq_cycle_t *cycle)
     return QQ_OK;
 }
 
-void
+qq_int_t
 qq_configure_listening_sockets(qq_cycle_t *cycle)
 {
     int                        value;
@@ -230,121 +170,108 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
 
     ls = cycle->listening;
     for (i = 0; i < cycle->nlistening; i++) {
-        if (ls[i].rcvbuf != -1) {
-            if (setsockopt(ls[i].fd, SOL_SOCKET, SO_RCVBUF,
-                           (const void *) &ls[i].rcvbuf, sizeof(int))
+        if (setsockopt(ls[i].fd, SOL_SOCKET, SO_RCVBUF,
+                      (const void *) &ls[i].rcvbuf, sizeof(int))
                 == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(SO_RCVBUF, %d) %V failed, ignored",
-                              ls[i].rcvbuf, &ls[i].addr_text);
-            }
+        {
+            qq_log_error(errno,
+                         "setsockopt(SO_RCVBUF, %d) %s failed, ignored",
+                         ls[i].rcvbuf, ls[i].addr_text);
+            return QQ_ERROR;
         }
 
-        if (ls[i].sndbuf != -1) {
-            if (setsockopt(ls[i].fd, SOL_SOCKET, SO_SNDBUF,
-                           (const void *) &ls[i].sndbuf, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(SO_SNDBUF, %d) %V failed, ignored",
-                              ls[i].sndbuf, &ls[i].addr_text);
-            }
+        if (setsockopt(ls[i].fd, SOL_SOCKET, SO_SNDBUF,
+                      (const void *) &ls[i].sndbuf, sizeof(int))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(SO_SNDBUF, %d) %s failed, ignored",
+                          ls[i].sndbuf, ls[i].addr_text);
+            return QQ_ERROR;
         }
 
-        if (ls[i].keepalive) {
-            value = (ls[i].keepalive == 1) ? 1 : 0;
-
-            if (setsockopt(ls[i].fd, SOL_SOCKET, SO_KEEPALIVE,
-                           (const void *) &value, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(SO_KEEPALIVE, %d) %V failed, ignored",
-                              value, &ls[i].addr_text);
-            }
+#if (QQ_HAVE_KEEPALIVE)
+        value = 1;
+        if (setsockopt(ls[i].fd, SOL_SOCKET, SO_KEEPALIVE,
+                      (const void *) &value, sizeof(int))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(SO_KEEPALIVE, %d) %s failed, ignored",
+                         value, ls[i].addr_text);
+            return QQ_ERROR;
         }
+#endif
 
 #if (QQ_HAVE_KEEPALIVE_TUNABLE)
-        if (ls[i].keepidle) {
-            value = ls[i].keepidle;
-
-#if (QQ_KEEPALIVE_FACTOR)
-            value *= QQ_KEEPALIVE_FACTOR;
-#endif
-
-            if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_KEEPIDLE,
-                           (const void *) &value, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(TCP_KEEPIDLE, %d) %V failed, ignored",
-                              value, &ls[i].addr_text);
-            }
+        value = QQ_TCP_KEEPIDLE;
+        value *= QQ_KEEPALIVE_FACTOR;
+        if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_KEEPIDLE,
+                      (const void *) &value, sizeof(int))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(TCP_KEEPIDLE, %d) %s failed, ignored",
+                         value, ls[i].addr_text);
+            return QQ_ERROR;
         }
 
-        if (ls[i].keepintvl) {
-            value = ls[i].keepintvl;
-
-#if (QQ_KEEPALIVE_FACTOR)
-            value *= QQ_KEEPALIVE_FACTOR;
-#endif
-
-            if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_KEEPINTVL,
-                           (const void *) &value, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                             "setsockopt(TCP_KEEPINTVL, %d) %V failed, ignored",
-                             value, &ls[i].addr_text);
-            }
+        value = QQ_TCP_KEEPINTVL;
+        value *= QQ_KEEPALIVE_FACTOR;
+        if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_KEEPINTVL,
+                      (const void *) &value, sizeof(int))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(TCP_KEEPINTVL, %d) %s failed, ignored",
+                         value, ls[i].addr_text);
+            return QQ_ERROR;
         }
 
-        if (ls[i].keepcnt) {
-            if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_KEEPCNT,
-                           (const void *) &ls[i].keepcnt, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(TCP_KEEPCNT, %d) %V failed, ignored",
-                              ls[i].keepcnt, &ls[i].addr_text);
-            }
+        
+        value = QQ_TCP_KEEPCNT;
+        if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_KEEPCNT,
+                      (const void *) &ls[i].keepcnt, sizeof(int))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(TCP_KEEPCNT, %d) %s failed, ignored",
+                         value, ls[i].addr_text);
+            return QQ_ERROR;
         }
-
 #endif
 
 #if (QQ_HAVE_SETFIB)
-        if (ls[i].setfib != -1) {
-            if (setsockopt(ls[i].fd, SOL_SOCKET, SO_SETFIB,
-                           (const void *) &ls[i].setfib, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(SO_SETFIB, %d) %V failed, ignored",
-                              ls[i].setfib, &ls[i].addr_text);
-            }
+        value = QQ_SETFIB;
+        if (setsockopt(ls[i].fd, SOL_SOCKET, SO_SETFIB,
+                      (const void *) &value, sizeof(int))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(SO_SETFIB, %d) %s failed, ignored",
+                         value, ls[i].addr_text);
+            return QQ_ERROR;
         }
 #endif
 
 #if (QQ_HAVE_TCP_FASTOPEN)
-        if (ls[i].fastopen != -1) {
-            if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_FASTOPEN,
-                           (const void *) &ls[i].fastopen, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(TCP_FASTOPEN, %d) %V failed, ignored",
-                              ls[i].fastopen, &ls[i].addr_text);
-            }
+        value = QQ_TCP_FASTOPEN;
+        if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_FASTOPEN,
+                      (const void *) &value, sizeof(int))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(TCP_FASTOPEN, %d) %s failed, ignored",
+                         value, ls[i].addr_text);
+            return QQ_ERROR;
         }
 #endif
 
-        if (ls[i].listen) {
-            if (listen(ls[i].fd, ls[i].backlog) == -1) {
-                qq_log_error(errno,
-                              "listen() to %V, backlog %d failed, ignored",
-                              &ls[i].addr_text, ls[i].backlog);
-            }
+        if (listen(ls[i].fd, ls[i].backlog) == -1) {
+            qq_log_error(errno,
+                         "listen() to %s, backlog %d failed, ignored",
+                         ls[i].addr_text, ls[i].backlog);i
+            return QQ_ERROR;
         }
 
 #if (QQ_HAVE_DEFERRED_ACCEPT)
@@ -499,21 +426,12 @@ qq_close_listening_sockets(qq_cycle_t *cycle)
             c->fd = (qq_socket_t) -1;
         }
 
-        qq_log_debug("close listening %V #%d ", &ls[i].addr_text, ls[i].fd);
+        qq_log_debug("close listening %s #%d ", ls[i].addr_text, ls[i].fd);
 
         if (close(ls[i].fd) == -1) {
-            qq_log_error(errno, "close socket %V failed", &ls[i].addr_text);
+            qq_log_error(errno, "close socket %s failed", ls[i].addr_text);
         }
 
-#if (QQ_HAVE_UNIX_DOMAIN)
-        if (ls[i].sockaddr->sa_family == AF_UNIX) {
-            u_char *name = ls[i].addr_text.data + sizeof("unix:") - 1;
-
-            if (qq_delete_file(name) == QQ_FILE_ERROR) {
-                qq_log_error(errno, "delete file %s failed", name);
-            }
-        }
-#endif
 
         ls[i].fd = (qq_socket_t) -1;
     }

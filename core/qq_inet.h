@@ -13,7 +13,7 @@
 
 
 #define QQ_INET_ADDRSTRLEN   (sizeof("255.255.255.255") - 1)
-#define QQ_SOCKADDR_STRLEN   (QQ_INET_ADDRSTRLEN + sizeof(":65535") - 1)
+#define QQ_SOCKADDR_STRLEN   (QQ_INET_ADDRSTRLEN + sizeof(":65535"))
 
 /* compatibility */
 #define QQ_SOCKADDRLEN       sizeof(qq_sockaddr_t)

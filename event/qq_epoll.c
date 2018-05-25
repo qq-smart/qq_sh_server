@@ -16,6 +16,8 @@ static qq_uint_t            nevents;
 qq_int_t
 qq_epoll_init(void)
 {
+    qq_log_debug("qq_epoll_init()");
+
     if (ep == -1) {
         ep = epoll_create(QQ_CONNECTION_NUMBER);
 
@@ -31,6 +33,7 @@ qq_epoll_init(void)
     }
     event_list = qq_alloc(sizeof(struct epoll_event) * nevents);
     if (event_list == NULL) {
+        qq_log_error(0, "epoll_event malloc(%d) failed", nevents);
         return QQ_ERROR;
     }
 
@@ -40,6 +43,8 @@ qq_epoll_init(void)
 void
 qq_epoll_done(void)
 {
+    qq_log_debug("qq_epoll_done()");
+
     if (close(ep) == -1) {
         qq_log_error(errno, "epoll close() failed");
     }

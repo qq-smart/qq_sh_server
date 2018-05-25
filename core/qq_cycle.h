@@ -23,9 +23,10 @@ struct qq_cycle_s {
     qq_listening_t          *listening;
     size_t                   nlistening;
 };
+extern qq_cycle_t  qq_cycle;
 
 
-extern qq_cycle_t  *qq_cycle;
+qq_int_t qq_cycle_init(void);
 
 
 #endif /* _QQ_CYCLE_H_INCLUDED_ */

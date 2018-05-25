@@ -17,9 +17,8 @@ qq_get_connection(qq_socket_t s)
 
     c = qq_cycle->free_connections;
     if (c == NULL) {
-        qq_log_error(0,
-                      "%ui worker_connections are not enough",
-                      qq_cycle->connection_n);
+        qq_log_error(0, "%ui worker_connections are not enough",
+                     qq_cycle->connection_n);
 
         return NULL;
     }
@@ -90,10 +89,6 @@ qq_close_connection(qq_connection_t *c)
 
     fd = c->fd;
     c->fd = (qq_socket_t) -1;
-
-    if (c->shared) {
-        return;
-    }
 
     if (close(fd) == -1) {
         qq_log_error(errno, "close socket %d failed", fd);

@@ -15,6 +15,8 @@ static qq_rbtree_node_t  qq_event_timer_sentinel;
 qq_int_t
 qq_event_timer_init(void)
 {
+    qq_log_debug("qq_event_timer_init()");
+
     qq_rbtree_init(&qq_event_timer_rbtree, &qq_event_timer_sentinel,
                     qq_rbtree_insert_timer_value);
 
