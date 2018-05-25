@@ -30,6 +30,13 @@
 #define QQ_TCP_FASTOPEN               0
 
 #define QQ_HAVE_DEFERRED_ACCEPT       0
+#define QQ_HAVE_ACCEPTFILTER          0
+#define QQ_HAVE_DEFERRED              0
+#define QQ_HAVE_TCP_DEFER_ACCEPT      0
+#define QQ_ACCEPT_FILTER_STR          ""
+
+#define QQ_HAVE_IP_RECVDSTADDR        0
+#define QQ_HAVE_IP_PKTINFO            0
 
 
 #define QQ_CONNECTION_NUMBER  20000

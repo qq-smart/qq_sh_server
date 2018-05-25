@@ -28,7 +28,6 @@ struct qq_listening_s {
     int                 rcvbuf;
     int                 sndbuf;
 
-    /* handler of accepted connection */
     qq_connection_handler_pt   handler;
 
     size_t              pool_size;
@@ -38,7 +37,7 @@ struct qq_listening_s {
 
 
 void qq_create_listening(qq_listening_t *listening, int type, int port,
-    size_t pool_size, q_connection_handler_pt handler);
+    size_t pool_size, qq_connection_handler_pt handler);
 qq_int_t qq_open_listening_sockets(qq_cycle_t *cycle);
 qq_int_t qq_configure_listening_sockets(qq_cycle_t *cycle);
 void qq_close_listening_sockets(qq_cycle_t *cycle);

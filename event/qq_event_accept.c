@@ -16,7 +16,7 @@ static void qq_close_accepted_connection(qq_connection_t *c);
 void
 qq_event_accept(qq_event_t *ev)
 {
-    socklen_t          socklen;
+/*    socklen_t          socklen;
     qq_err_t           err;
     qq_socket_t        s;
     qq_event_t        *rev, *wev;
@@ -116,10 +116,10 @@ qq_event_accept(qq_event_t *ev)
             return;
         }
 
-        /*c->recv = qq_recv;
+        c->recv = qq_recv;
         c->send = qq_send;
         c->recv_chain = qq_recv_chain;
-        c->send_chain = qq_send_chain;*/
+        c->send_chain = qq_send_chain;
 
         c->socklen = socklen;
         c->listening = ls;
@@ -131,7 +131,6 @@ qq_event_accept(qq_event_t *ev)
             c->tcp_nopush = QQ_TCP_NOPUSH_DISABLED;
             c->tcp_nodelay = QQ_TCP_NODELAY_DISABLED;
 #if (NGX_SOLARIS)
-            /* Solaris's sendfilev() supports AF_NCA, AF_INET, and AF_INET6 */
             c->sendfile = 0;
 #endif
         }
@@ -166,13 +165,13 @@ qq_event_accept(qq_event_t *ev)
         }
 
         ls->handler(c);
-    } while (ev->available);
+    } while (ev->available);*/
 }
 
 void
 qq_event_recvmsg(qq_event_t *ev)
 {
-    ssize_t            n;
+    /*ssize_t            n;
     qq_err_t           err;
     qq_event_t        *rev, *wev;
     struct iovec       iov[1];
@@ -291,8 +290,8 @@ qq_event_recvmsg(qq_event_t *ev)
 
         memcpy(c->sockaddr, msg.msg_name, c->socklen);
 
-        /*c->send = qq_udp_send;
-        c->send_chain = qq_udp_send_chain;*/
+        c->send = qq_udp_send;
+        c->send_chain = qq_udp_send_chain;
 
         c->listening = ls;
         c->local_sockaddr = ls->sockaddr;
@@ -375,12 +374,12 @@ qq_event_recvmsg(qq_event_t *ev)
 
 #endif
 
-        /*c->buffer = qq_create_temp_buf(c->pool, n);
+        c->buffer = qq_create_temp_buf(c->pool, n);
         if (c->buffer == NULL) {
             qq_close_accepted_connection(c);
             return;
         }
-        c->buffer->last = qq_cpymem(c->buffer->last, buffer, n);*/
+        c->buffer->last = qq_cpymem(c->buffer->last, buffer, n);
 
         rev = c->read;
         wev = c->write;
@@ -402,7 +401,7 @@ qq_event_recvmsg(qq_event_t *ev)
         }
 
         ls->handler(c);
-    } while (ev->available);
+    } while (ev->available);*/
 }
 
 

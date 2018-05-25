@@ -15,16 +15,16 @@ qq_get_connection(qq_socket_t s)
     qq_event_t       *rev, *wev;
     qq_connection_t  *c;
 
-    c = qq_cycle->free_connections;
+    c = qq_cycle.free_connections;
     if (c == NULL) {
         qq_log_error(0, "%ui worker_connections are not enough",
-                     qq_cycle->connection_n);
+                     qq_cycle.connection_n);
 
         return NULL;
     }
 
-    qq_cycle->free_connections = c->data;
-    qq_cycle->free_connection_n--;
+    qq_cycle.free_connections = c->data;
+    qq_cycle.free_connection_n--;
 
     rev = c->read;
     wev = c->write;
@@ -57,9 +57,9 @@ qq_get_connection(qq_socket_t s)
 void
 qq_free_connection(qq_connection_t *c)
 {
-    c->data = qq_cycle->free_connections;
-    qq_cycle->free_connections = c;
-    qq_cycle->free_connection_n++;
+    c->data = qq_cycle.free_connections;
+    qq_cycle.free_connections = c;
+    qq_cycle.free_connection_n++;
 }
 
 void

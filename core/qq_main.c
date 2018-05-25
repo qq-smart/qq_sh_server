@@ -17,8 +17,6 @@ main(int argc, char *const *argv)
 
     qq_log_init(getpid());
 
-
-
     if (qq_cycle_init() == QQ_ERROR) {
         qq_log_error(0, "qq_cycle_init() failed");
         return 1;

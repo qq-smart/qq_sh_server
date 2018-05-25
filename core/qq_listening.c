@@ -15,7 +15,7 @@ qq_create_listening(qq_listening_t *listening, int type, int port,
     listening->sockaddr.sin_family = AF_INET;
     listening->sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     listening->sockaddr.sin_port = htons(port);
-    listening->socklen = sizeof(struct sockaddr_in);
+    listening->socklen = sizeof(struct sockaddr);
 
     listening->addr_text_len = qq_sock_ntop(&listening->sockaddr, listening->addr_text);
     qq_log_debug("listening addr text: %s, addr text len: %d",
@@ -50,7 +50,7 @@ qq_open_listening_sockets(qq_cycle_t *cycle)
                 continue;
             }
 
-            s = socket(ls[i].sockaddr->sa_family, ls[i].type, 0);
+            s = socket(ls[i].sockaddr.sin_family, ls[i].type, 0);
             if (s == (qq_socket_t) -1) {
                 qq_log_error(errno, "create sockets %s failed", ls[i].addr_text);
                 return QQ_ERROR;
@@ -270,142 +270,97 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
         if (listen(ls[i].fd, ls[i].backlog) == -1) {
             qq_log_error(errno,
                          "listen() to %s, backlog %d failed, ignored",
-                         ls[i].addr_text, ls[i].backlog);i
+                         ls[i].addr_text, ls[i].backlog);
             return QQ_ERROR;
         }
 
 #if (QQ_HAVE_DEFERRED_ACCEPT)
-#ifdef SO_ACCEPTFILTER
-        if (ls[i].delete_deferred) {
-            if (setsockopt(ls[i].fd, SOL_SOCKET, SO_ACCEPTFILTER, NULL, 0)
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(SO_ACCEPTFILTER, NULL) "
-                              "for %V failed, ignored",
-                              &ls[i].addr_text);
-
-                if (ls[i].accept_filter) {
-                    qq_log_error(0,
-                                  "could not change the accept filter "
-                                  "to \"%s\" for %V, ignored",
-                                  ls[i].accept_filter, &ls[i].addr_text);
-                }
-
-                continue;
-            }
-
-            ls[i].deferred_accept = 0;
+#if (QQ_HAVE_ACCEPTFILTER)
+        if (setsockopt(ls[i].fd, SOL_SOCKET, SO_ACCEPTFILTER, NULL, 0)
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(SO_ACCEPTFILTER, NULL) "
+                         "for %s failed, ignored",
+                         ls[i].addr_text);
+            return QQ_ERROR;
         }
 
-        if (ls[i].add_deferred) {
-            memset(&af, 0, sizeof(struct accept_filter_arg));
-            (void) qq_cpystrn((u_char *) af.af_name,
-                               (u_char *) ls[i].accept_filter, 16);
+#if (QQ_HAVE_DEFERRED)
+        struct accept_filter_arg  af;
+        char accept_filter[16] = QQ_ACCEPT_FILTER_STR;
 
-            if (setsockopt(ls[i].fd, SOL_SOCKET, SO_ACCEPTFILTER,
-                           &af, sizeof(struct accept_filter_arg))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(SO_ACCEPTFILTER, \"%s\") "
-                              "for %V failed, ignored",
-                              ls[i].accept_filter, &ls[i].addr_text);
-                continue;
-            }
+        memset(&af, 0, sizeof(struct accept_filter_arg));
+        (void) qq_cpystrn((u_char *) af.af_name,
+                          (u_char *) accept_filter, 16);
 
-            ls[i].deferred_accept = 1;
+        if (setsockopt(ls[i].fd, SOL_SOCKET, SO_ACCEPTFILTER,
+                       &af, sizeof(struct accept_filter_arg))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(SO_ACCEPTFILTER, \"%s\") "
+                         "for %s failed, ignored",
+                         accept_filter, ls[i].addr_text);
+            return QQ_ERROR;
         }
 #endif
-
-#ifdef TCP_DEFER_ACCEPT
-        if (ls[i].add_deferred || ls[i].delete_deferred) {
-            if (ls[i].add_deferred) {
-                value = 1;
-            } else {
-                value = 0;
-            }
-
-            if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_DEFER_ACCEPT,
-                           &value, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(TCP_DEFER_ACCEPT, %d) for %V failed, "
-                              "ignored",
-                              value, &ls[i].addr_text);
-
-                continue;
-            }
-        }
-
-        if (ls[i].add_deferred) {
-            ls[i].deferred_accept = 1;
-        }
-
 #endif
 
+#if (QQ_HAVE_TCP_DEFER_ACCEPT)
+        value = 1;
+        if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_DEFER_ACCEPT,
+                       &value, sizeof(int))
+            == -1)
+        {
+            qq_log_error(errno,
+                         "setsockopt(TCP_DEFER_ACCEPT, %d) for %s failed, "
+                         "ignored",
+                         value, ls[i].addr_text);
+            return QQ_ERROR;
+        }
+#endif
 #endif /* QQ_HAVE_DEFERRED_ACCEPT */
 
 #if (QQ_HAVE_IP_RECVDSTADDR)
-        if (ls[i].wildcard
-            && ls[i].type == SOCK_DGRAM
+        if (ls[i].type == SOCK_DGRAM
             && ls[i].sockaddr->sa_family == AF_INET)
         {
             value = 1;
 
             if (setsockopt(ls[i].fd, IPPROTO_IP, IP_RECVDSTADDR,
-                           (const void *) &value, sizeof(int))
+                          (const void *) &value, sizeof(int))
                 == -1)
             {
                 qq_log_error(errno,
-                              "setsockopt(IP_RECVDSTADDR) "
-                              "for %V failed, ignored",
-                              &ls[i].addr_text);
+                             "setsockopt(IP_RECVDSTADDR) "
+                             "for %s failed, ignored",
+                             ls[i].addr_text);
+                return QQ_ERROR;
             }
         }
 
 #elif (QQ_HAVE_IP_PKTINFO)
-        if (ls[i].wildcard
-            && ls[i].type == SOCK_DGRAM
+        if (ls[i].type == SOCK_DGRAM
             && ls[i].sockaddr->sa_family == AF_INET)
         {
             value = 1;
 
             if (setsockopt(ls[i].fd, IPPROTO_IP, IP_PKTINFO,
-                           (const void *) &value, sizeof(int))
+                          (const void *) &value, sizeof(int))
                 == -1)
             {
                 qq_log_error(errno,
-                              "setsockopt(IP_PKTINFO) "
-                              "for %V failed, ignored",
-                              &ls[i].addr_text);
-            }
-        }
-
-#endif
-
-#if (QQ_HAVE_INET6 && QQ_HAVE_IPV6_RECVPKTINFO)
-        if (ls[i].wildcard
-            && ls[i].type == SOCK_DGRAM
-            && ls[i].sockaddr->sa_family == AF_INET6)
-        {
-            value = 1;
-
-            if (setsockopt(ls[i].fd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
-                           (const void *) &value, sizeof(int))
-                == -1)
-            {
-                qq_log_error(errno,
-                              "setsockopt(IPV6_RECVPKTINFO) "
-                              "for %V failed, ignored",
-                              &ls[i].addr_text);
+                             "setsockopt(IP_PKTINFO) "
+                             "for %s failed, ignored",
+                             ls[i].addr_text);
+                return QQ_ERROR;
             }
         }
 #endif
     }
 
-    return;
+    return QQ_OK;
 }
 
 void
