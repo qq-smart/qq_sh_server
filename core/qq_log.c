@@ -64,7 +64,6 @@ qq_log_error(qq_err_t err, const char *fmt, ...)
 }
 
 #if (QQ_HAVE_DEBUG)
-
 void
 qq_log_debug(const char *fmt, ...)
 {
@@ -74,7 +73,6 @@ qq_log_debug(const char *fmt, ...)
     qq_log_error_debug_core(QQ_LOG_DEBUG, 0, fmt, args);
     va_end(args);
 }
-
 #endif
 
 static void
@@ -87,10 +85,14 @@ qq_log_error_debug_core(int type, qq_err_t err, const char *fmt, va_list args)
     if (type == QQ_LOG_ERROR) {
         sprintf(qq_log.errno_ptr, "%10d   ", err);
         len = vsprintf(qq_log.err_desc_ptr, fmt, args);
-        write(qq_log.err_fd, qq_log.str, qq_log.err_prefix_len + len);
+        len += qq_log.err_prefix_len;
+        qq_log.str[len++] = '\n';
+        write(qq_log.err_fd, qq_log.str, len);
     }
     else if (type == QQ_LOG_DEBUG){
         len = vsprintf(qq_log.debug_desc_ptr, fmt, args);
-        write(STDERR_FILENO, qq_log.str, qq_log.debug_prefix_len + len);
+        len += qq_log.debug_prefix_len;
+        qq_log.str[len++] = '\n';
+        write(STDERR_FILENO, qq_log.str, len);
     }
 }
