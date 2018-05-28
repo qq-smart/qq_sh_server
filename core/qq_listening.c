@@ -12,13 +12,15 @@ void
 qq_create_listening(qq_listening_t *listening, int type, int port,
     size_t pool_size, qq_connection_handler_pt handler)
 {
+    qq_log_debug("qq_create_listening()");
+
     listening->sockaddr.sin_family = AF_INET;
     listening->sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     listening->sockaddr.sin_port = htons(port);
     listening->socklen = sizeof(struct sockaddr);
 
     listening->addr_text_len = qq_sock_ntop(&listening->sockaddr, listening->addr_text);
-    qq_log_debug("listening addr text: %s, addr text len: %d",
+    qq_log_debug("listening address: %s, address len: %d",
         listening->addr_text, listening->addr_text_len);
 
     listening->fd = (qq_socket_t) -1;
@@ -40,6 +42,8 @@ qq_open_listening_sockets(qq_cycle_t *cycle)
     qq_err_t         err;
     qq_socket_t      s;
     qq_listening_t  *ls;
+
+    qq_log_debug("qq_open_listening_sockets()");
 
     for (tries = 5; tries; tries--) {
         failed = 0;
@@ -167,6 +171,8 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
 #if (QQ_HAVE_DEFERRED_ACCEPT && defined SO_ACCEPTFILTER)
     struct accept_filter_arg   af;
 #endif
+
+    qq_log_debug("qq_configure_listening_sockets()");
 
     ls = cycle->listening;
     for (i = 0; i < cycle->nlistening; i++) {
@@ -369,6 +375,8 @@ qq_close_listening_sockets(qq_cycle_t *cycle)
     qq_uint_t         i;
     qq_listening_t   *ls;
     qq_connection_t  *c;
+
+    qq_log_debug("qq_close_listening_sockets()");
 
     ls = cycle->listening;
     for (i = 0; i < cycle->nlistening; i++) {

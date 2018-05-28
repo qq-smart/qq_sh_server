@@ -19,14 +19,11 @@ struct qq_connection_s {
 
     qq_socket_t         fd;
 
-    /*qq_recv_pt          recv;
+    qq_recv_pt          recv;
     qq_send_pt          send;
-    qq_recv_chain_pt    recv_chain;
-    qq_send_chain_pt    send_chain;*/
 
     qq_listening_t     *listening;
 
-    off_t               sent;
     qq_pool_t          *pool;
     int                 type;
 

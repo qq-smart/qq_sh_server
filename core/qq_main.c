@@ -21,7 +21,6 @@ main(int argc, char *const *argv)
         qq_log_error(0, "qq_cycle_init() failed");
         return 1;
     }
-
  
     return 0;
 }
