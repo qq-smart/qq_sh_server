@@ -55,6 +55,7 @@ typedef void (*qq_connection_handler_pt)(qq_connection_t *c);
 #include "qq_udp_recv.h"
 #include "qq_cycle.h"
 #include "qq_app.h"
+#include "qq_event_posted.h"
 #include "qq_event_accept.h"
 #include "qq_event_timer.h"
 #include "qq_epoll.h"

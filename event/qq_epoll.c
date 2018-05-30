@@ -27,7 +27,7 @@ qq_epoll_init(void)
         }
     }
 
-    nevents = QQ_EVENT_NUMBER;
+    nevents = QQ_EPOLL_EVENT_NUMBER;
     if (event_list) {
         free(event_list);
     }
@@ -98,18 +98,13 @@ qq_epoll_add_event(qq_event_t *ev, qq_int_t event)
 }
 
 qq_int_t
-qq_epoll_del_event(qq_event_t *ev, qq_int_t event, qq_uint_t flags)
+qq_epoll_del_event(qq_event_t *ev, qq_int_t event)
 {
     int                  op;
     uint32_t             prev;
     qq_event_t          *e;
     qq_connection_t     *c;
     struct epoll_event   ee;
-
-    if (flags & QQ_CLOSE_EVENT) {
-        ev->active = 0;
-        return QQ_OK;
-    }
 
     c = ev->data;
 

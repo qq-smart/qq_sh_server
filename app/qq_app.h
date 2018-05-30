@@ -24,14 +24,6 @@
 #define QQ_WIFI_DEVICE_TCP_LISTENING_POOL_SIZE  512
 
 
-typedef struct {
-    int    type;
-    int    port;
-    size_t pool_size;
-    qq_connection_handler_pt handler;
-} qq_app_listening_config_t;
-
-
 qq_int_t qq_app_init(qq_cycle_t *cycle);
 
 

@@ -12,7 +12,7 @@
 #include "qq_core.h"
 
 
-void qq_master_process_cycle(void);
+void qq_process_cycle(qq_cycle_t *cycle);
 
 
 #endif /* _QQ_PROCESS_H_INCLUDED_ */

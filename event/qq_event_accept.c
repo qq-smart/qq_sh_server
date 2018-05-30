@@ -30,94 +30,95 @@ qq_event_accept(qq_event_t *ev)
 
     qq_log_debug("accept on %s", ls->addr_text);
 
-    socklen = sizeof(struct sockaddr);
+    for (;;) {
+        socklen = sizeof(struct sockaddr);
 
-    s = accept(lc->fd, &sa, &socklen);
-    if (s == (qq_socket_t) -1) {
-        err = errno;
+        s = accept(lc->fd, &sa, &socklen);
+        if (s == (qq_socket_t) -1) {
+            err = errno;
 
-        if (err == QQ_EAGAIN) {
-            qq_log_debug("accept() not ready");
+            if (err == QQ_EAGAIN) {
+                qq_log_debug("accept() not ready");
+                return;
+            }
+
+            qq_log_error(err, "accept() failed");
+
+            if (err == QQ_ECONNABORTED) {
+                continue;
+            }
+
+            if (err == QQ_EMFILE || err == QQ_ENFILE) {
+                if (qq_disable_accept_events((qq_cycle_t *) qq_cycle)
+                    != QQ_OK)
+                {
+                    return;
+                }
+            }
             return;
         }
 
-        qq_log_error(err, "accept() failed");
-
-#if (0)
-        if (err == QQ_ECONNABORTED) {
-            continue;
-        }
-#endif
-
-        if (err == QQ_EMFILE || err == QQ_ENFILE) {
-            if (qq_disable_accept_events((qq_cycle_t *) &qq_cycle)
-                != QQ_OK)
-            {
-                return;
+        c = qq_get_connection(s);
+        if (c == NULL) {
+            if (close(s) == -1) {
+                qq_log_error(errno, "close sockets failed");
             }
+            return;
         }
-        return;
-    }
+        c->type = SOCK_STREAM;
 
-    c = qq_get_connection(s);
-    if (c == NULL) {
-        if (close(s) == -1) {
-            qq_log_error(errno, "close sockets failed");
+        c->pool = qq_create_pool(ls->pool_size);
+        if (c->pool == NULL) {
+            qq_close_accepted_connection(c);
+            return;
         }
+
+        c->sockaddr = qq_palloc(c->pool, socklen);
+        if (c->sockaddr == NULL) {
+            qq_close_accepted_connection(c);
+            return;
+        }
+        memcpy(c->sockaddr, &sa, socklen);
+
+        if (qq_nonblocking(s) == -1) {
+            qq_log_error(errno, "set sockets nonblocking_n failed");
+            qq_close_accepted_connection(c);
+            return;
+        }
+
+        c->recv = qq_tcp_recv;
+        c->send = qq_tcp_send;
+
+        c->socklen = socklen;
+        c->listening = ls;
+        c->local_sockaddr = (struct sockaddr*) &ls->sockaddr;
+        c->local_socklen = ls->socklen;
+
+        rev = c->read;
+        wev = c->write;
+        wev->ready = 1;
+
+        if (ev->deferred_accept) {
+            rev->ready = 1;
+        }
+
+        c->addr_text.data = (u_char *)c->listening->addr_text;
+        c->addr_text.len = c->listening->addr_text_len;
+        if (c->addr_text.len == 0) {
+            qq_close_accepted_connection(c);
+            return;
+        }
+        qq_log_debug("connection address: %s, address len: %d",
+            c->addr_text.data, c->addr_text.len);
+
+        if (qq_epoll_add_connection(c) == QQ_ERROR) {
+            qq_close_accepted_connection(c);
+            return;
+        }
+
+        ls->handler(c);
         return;
     }
-    c->type = SOCK_STREAM;
-
-    c->pool = qq_create_pool(ls->pool_size);
-    if (c->pool == NULL) {
-        qq_close_accepted_connection(c);
-        return;
-    }
-
-    c->sockaddr = qq_palloc(c->pool, socklen);
-    if (c->sockaddr == NULL) {
-        qq_close_accepted_connection(c);
-        return;
-    }
-    memcpy(c->sockaddr, &sa, socklen);
-
-    if (qq_nonblocking(s) == -1) {
-        qq_log_error(errno, "set sockets nonblocking_n failed");
-        qq_close_accepted_connection(c);
-        return;
-    }
-
-    c->recv = qq_tcp_recv;
-    c->send = qq_tcp_send;
-
-    c->socklen = socklen;
-    c->listening = ls;
-    c->local_sockaddr = (struct sockaddr*) &ls->sockaddr;
-    c->local_socklen = ls->socklen;
-
-    rev = c->read;
-    wev = c->write;
-    wev->ready = 1;
-
-    if (ev->deferred_accept) {
-        rev->ready = 1;
-    }
-
-    c->addr_text.data = (u_char *)c->listening->addr_text;
-    c->addr_text.len = c->listening->addr_text_len;
-    if (c->addr_text.len == 0) {
-        qq_close_accepted_connection(c);
-        return;
-    }
-    qq_log_debug("connection address: %s, address len: %d",
-        c->addr_text.data, c->addr_text.len);
-
-    if (qq_epoll_add_connection(c) == QQ_ERROR) {
-        qq_close_accepted_connection(c);
-        return;
-    }
-
-    ls->handler(c);
 }
 
 void
@@ -142,7 +143,7 @@ qq_event_recvmsg(qq_event_t *ev)
 #endif
 
     if (ev->timedout) {
-        if (qq_enable_accept_events((qq_cycle_t *) &qq_cycle) != QQ_OK) {
+        if (qq_enable_accept_events((qq_cycle_t *) qq_cycle) != QQ_OK) {
             return;
         }
         ev->timedout = 0;
@@ -280,12 +281,12 @@ qq_event_recvmsg(qq_event_t *ev)
         c->addr_text.data = c->listening->addr_text;
         c->addr_text.len = c->listening->addr_text_len;
         if (c->addr_text.len == 0) {
-                qq_close_accepted_connection(c);
-                return;
+            qq_close_accepted_connection(c);
+            return;
         }
 
         ls->handler(c);
-		return;
+        return;
     }
 }
 
@@ -326,7 +327,7 @@ qq_disable_accept_events(qq_cycle_t *cycle)
             continue;
         }
 
-        if (qq_epoll_del_event(c->read, QQ_READ_EVENT, QQ_DISABLE_EVENT)
+        if (qq_epoll_del_event(c->read, QQ_READ_EVENT)
             == QQ_ERROR)
         {
             return QQ_ERROR;

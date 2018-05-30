@@ -8,30 +8,45 @@
 #include "qq_core.h"
 
 
-void
-qq_create_listening(qq_listening_t *listening, int type, int port,
-    size_t pool_size, qq_connection_handler_pt handler)
+qq_int_t
+qq_create_listening(qq_cycle_t *cycle)
 {
+    size_t           size;
+    int              i;
+    qq_listening_t  *ls;
+
     qq_log_debug("qq_create_listening()");
 
-    listening->sockaddr.sin_family = AF_INET;
-    listening->sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    listening->sockaddr.sin_port = htons(port);
-    listening->socklen = sizeof(struct sockaddr);
+    size = sizeof(qq_listening_t) * cycle->nlistening;
+    cycle->listening = qq_pcalloc(cycle->pool, size);
+    if (cycle->listening == NULL) {
+        qq_log_error(0, "qq_listening_t malloc(%uz) failed", size);
+        return QQ_ERROR;
+    }
 
-    listening->addr_text_len = qq_sock_ntop(&listening->sockaddr, listening->addr_text);
-    qq_log_debug("listening address: %s, address len: %d",
-        listening->addr_text, listening->addr_text_len);
+    ls = cycle->listening;
+    for (i = 0; i < cycle->nlistening; i++) {
+        ls[i].sockaddr.sin_family = AF_INET;
+        ls[i].sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        ls[i].sockaddr.sin_port = htons(cycle->listening_config[i].port);
+        ls[i].socklen = sizeof(struct sockaddr);
 
-    listening->fd = (qq_socket_t) -1;
-    listening->type = type;
+        ls[i].addr_text_len = qq_sock_ntop(&ls[i].sockaddr, ls[i].addr_text);
+        qq_log_debug("listening address: %s, address len: %d",
+            ls[i].addr_text, ls[i].addr_text_len);
 
-    listening->backlog = QQ_LISTEN_BACKLOG;
-    listening->rcvbuf = QQ_SOCK_REVBUF_SIZE;
-    listening->sndbuf = QQ_SOCK_SNDBUF_SIZE;
+        ls[i].fd = (qq_socket_t) -1;
+        ls[i].type = cycle->listening_config[i].type;
 
-    listening->handler = handler;
-    listening->pool_size = pool_size;
+        ls[i].backlog = QQ_LISTEN_BACKLOG;
+        ls[i].rcvbuf = QQ_SOCK_REVBUF_SIZE;
+        ls[i].sndbuf = QQ_SOCK_SNDBUF_SIZE;
+
+        ls[i].handler = cycle->listening_config[i].handler;
+        ls[i].pool_size = cycle->listening_config[i].pool_size;
+    }
+
+    return QQ_OK;
 }
 
 qq_int_t
@@ -74,11 +89,11 @@ qq_open_listening_sockets(qq_cycle_t *cycle)
 
 #if (QQ_HAVE_REUSEPORT)
             int  reuseport = 1;
-            if (setsockopt(ls[i].fd, SOL_SOCKET, SO_REUSEPORT,
+            if (setsockopt(s, SOL_SOCKET, SO_REUSEPORT,
                           (const void *) &reuseport, sizeof(int))
                 == -1)
             {
-                qq_log_error(errno, "setsockopt(SO_REUSEPORT) %s failed, ignored", ls[i].addr_text);
+                qq_log_error(errno, "setsockopt(SO_REUSEPORT) %s failed", ls[i].addr_text);
 
                 if (close(s) == -1) {
                     qq_log_error(errno, "close sockets %s failed", ls[i].addr_text);
@@ -97,7 +112,7 @@ qq_open_listening_sockets(qq_cycle_t *cycle)
 
             qq_log_debug("bind() %s #%d ", ls[i].addr_text, s);
 
-            if (bind(s, (struct sockaddr *)&ls[i].sockaddr, ls[i].socklen) == -1) {
+            if (bind(s, (struct sockaddr *) &ls[i].sockaddr, ls[i].socklen) == -1) {
                 err = errno;
 
                 if (err != QQ_EADDRINUSE) {
@@ -168,7 +183,7 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
     qq_uint_t                  i;
     qq_listening_t            *ls;
 
-#if (QQ_HAVE_DEFERRED_ACCEPT && defined SO_ACCEPTFILTER)
+#if (QQ_HAVE_DEFERRED_ACCEPT)
     struct accept_filter_arg   af;
 #endif
 
@@ -176,6 +191,7 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
 
     ls = cycle->listening;
     for (i = 0; i < cycle->nlistening; i++) {
+#if (QQ_HAVE_REVBUF)
         if (setsockopt(ls[i].fd, SOL_SOCKET, SO_RCVBUF,
                       (const void *) &ls[i].rcvbuf, sizeof(int))
                 == -1)
@@ -185,7 +201,9 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
                          ls[i].rcvbuf, ls[i].addr_text);
             return QQ_ERROR;
         }
+#endif
 
+#if (QQ_HAVE_SNDBUF)
         if (setsockopt(ls[i].fd, SOL_SOCKET, SO_SNDBUF,
                       (const void *) &ls[i].sndbuf, sizeof(int))
             == -1)
@@ -195,6 +213,7 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
                           ls[i].sndbuf, ls[i].addr_text);
             return QQ_ERROR;
         }
+#endif
 
 #if (QQ_HAVE_KEEPALIVE)
         value = 1;
@@ -273,6 +292,7 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
         }
 #endif
 
+        qq_log_debug("listen() to %s, backlog %d", ls[i].addr_text, ls[i].backlog);
         if (listen(ls[i].fd, ls[i].backlog) == -1) {
             qq_log_error(errno,
                          "listen() to %s, backlog %d failed, ignored",
@@ -383,7 +403,7 @@ qq_close_listening_sockets(qq_cycle_t *cycle)
         c = ls[i].connection;
         if (c) {
             if (c->read->active) {
-                qq_epoll_del_event(c->read, QQ_READ_EVENT, 0);
+                qq_epoll_del_event(c->read, QQ_READ_EVENT);
             }
             qq_free_connection(c);
             c->fd = (qq_socket_t) -1;

@@ -15,16 +15,18 @@ qq_get_connection(qq_socket_t s)
     qq_event_t       *rev, *wev;
     qq_connection_t  *c;
 
-    c = qq_cycle.free_connections;
+    qq_log_debug("qq_get_connection(%d)", s);
+
+    c = qq_cycle->free_connections;
     if (c == NULL) {
         qq_log_error(0, "%ui worker_connections are not enough",
-                     qq_cycle.connection_n);
+                     qq_cycle->connection_n);
 
         return NULL;
     }
 
-    qq_cycle.free_connections = c->data;
-    qq_cycle.free_connection_n--;
+    qq_cycle->free_connections = c->data;
+    qq_cycle->free_connection_n--;
 
     rev = c->read;
     wev = c->write;
@@ -57,15 +59,19 @@ qq_get_connection(qq_socket_t s)
 void
 qq_free_connection(qq_connection_t *c)
 {
-    c->data = qq_cycle.free_connections;
-    qq_cycle.free_connections = c;
-    qq_cycle.free_connection_n++;
+    qq_log_debug("qq_free_connection(%p)", c);
+
+    c->data = qq_cycle->free_connections;
+    qq_cycle->free_connections = c;
+    qq_cycle->free_connection_n++;
 }
 
 void
 qq_close_connection(qq_connection_t *c)
 {
     qq_socket_t  fd;
+
+    qq_log_debug("qq_close_connection(%p)", c);
 
     if (c->fd == (qq_socket_t) -1) {
         qq_log_error(0, "connection already closed");
@@ -81,6 +87,14 @@ qq_close_connection(qq_connection_t *c)
     }
 
     qq_epoll_del_connection(c, QQ_CLOSE_EVENT);
+
+    if (c->read->posted) {
+        qq_delete_posted_event(c->read);
+    }
+
+    if (c->write->posted) {
+        qq_delete_posted_event(c->write);
+    }
 
     c->read->closed = 1;
     c->write->closed = 1;

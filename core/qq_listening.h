@@ -12,6 +12,14 @@
 #include "qq_core.h"
 
 
+typedef struct {
+    int    type;
+    int    port;
+    size_t pool_size;
+    qq_connection_handler_pt handler;
+} qq_listening_config_t;
+
+
 typedef struct qq_listening_s  qq_listening_t;
 
 struct qq_listening_s {
@@ -36,8 +44,7 @@ struct qq_listening_s {
 };
 
 
-void qq_create_listening(qq_listening_t *listening, int type, int port,
-    size_t pool_size, qq_connection_handler_pt handler);
+qq_int_t qq_create_listening(qq_cycle_t *cycle);
 qq_int_t qq_open_listening_sockets(qq_cycle_t *cycle);
 qq_int_t qq_configure_listening_sockets(qq_cycle_t *cycle);
 void qq_close_listening_sockets(qq_cycle_t *cycle);

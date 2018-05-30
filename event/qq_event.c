@@ -18,6 +18,9 @@ qq_event_init(qq_cycle_t *cycle)
 
     qq_log_debug("qq_event_init()");
 
+    qq_queue_init(&qq_posted_accept_events);
+    qq_queue_init(&qq_posted_events);
+
     if (qq_event_timer_init() == QQ_ERROR) {
         return QQ_ERROR;
     }
@@ -26,6 +29,7 @@ qq_event_init(qq_cycle_t *cycle)
         return QQ_ERROR;
     }
 
+    qq_log_debug("connection pool malloc");
     cycle->connections = qq_alloc(sizeof(qq_connection_t) * cycle->connection_n);
     if (cycle->connections == NULL) {
         qq_log_error(0, "connection malloc(%d) failed", cycle->connection_n);
@@ -33,6 +37,7 @@ qq_event_init(qq_cycle_t *cycle)
     }
     c = cycle->connections;
 
+    qq_log_debug("read event pool malloc");
     cycle->read_events = qq_alloc(sizeof(qq_event_t) * cycle->connection_n);
     if (cycle->read_events == NULL) {
         qq_log_error(0, "read_events malloc(%d) failed", cycle->connection_n);
@@ -44,6 +49,7 @@ qq_event_init(qq_cycle_t *cycle)
         rev[i].instance = 1;
     }
 
+    qq_log_debug("write event pool malloc");
     cycle->write_events = qq_alloc(sizeof(qq_event_t) * cycle->connection_n);
     if (cycle->write_events == NULL) {
         qq_log_error(0, "write_events malloc(%d) failed", cycle->connection_n);
@@ -102,41 +108,17 @@ qq_events_process(void)
     qq_msec_t  delta;
 
     delta = qq_current_msec;
-    qq_epoll_process_events(qq_event_find_timer(), QQ_UPDATE_TIME);
-    delta = qq_current_msec - delta;
 
+    qq_epoll_process_events(qq_event_find_timer(), QQ_UPDATE_TIME);
+
+    delta = qq_current_msec - delta;
     qq_log_debug("timer delta: %d", delta);
+
+    qq_event_process_posted(&qq_posted_accept_events);
 
     if (delta) {
         qq_event_expire_timers();
     }
-}
 
-qq_int_t
-qq_handle_read_event(qq_event_t *rev)
-{
-    if (!rev->active && !rev->ready) {
-        if (qq_epoll_add_event(rev, QQ_READ_EVENT)
-            == QQ_ERROR)
-        {
-            return QQ_ERROR;
-        }
-    }
-
-    return QQ_OK;
-}
-
-
-qq_int_t
-qq_handle_write_event(qq_event_t *wev)
-{
-    if (!wev->active && !wev->ready) {
-        if (qq_epoll_add_event(wev, QQ_WRITE_EVENT)
-            == QQ_ERROR)
-        {
-            return QQ_ERROR;
-        }
-    }
-
-    return QQ_OK;
+    qq_event_process_posted(&qq_posted_events);
 }
