@@ -86,7 +86,7 @@ qq_close_connection(qq_connection_t *c)
         qq_event_del_timer(c->write);
     }
 
-    qq_epoll_del_connection(c, QQ_CLOSE_EVENT);
+    qq_epoll_del_connection(c);
 
     if (c->read->posted) {
         qq_delete_posted_event(c->read);

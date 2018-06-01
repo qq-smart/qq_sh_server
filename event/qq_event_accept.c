@@ -24,6 +24,15 @@ qq_event_accept(qq_event_t *ev)
     qq_listening_t    *ls;
     qq_connection_t   *c, *lc;
 
+    qq_log_debug("qq_event_accept(%p)", ev);
+
+    if (ev->timedout) {
+        if (qq_enable_accept_events((qq_cycle_t *) qq_cycle) != QQ_OK) {
+            return;
+        }
+        ev->timedout = 0;
+    }
+
     lc = ev->data;
     ls = lc->listening;
     ev->ready = 0;
@@ -102,14 +111,19 @@ qq_event_accept(qq_event_t *ev)
             rev->ready = 1;
         }
 
-        c->addr_text.data = (u_char *)c->listening->addr_text;
-        c->addr_text.len = c->listening->addr_text_len;
-        if (c->addr_text.len == 0) {
+        c->addr_text = qq_pnalloc(c->pool, QQ_SOCKADDR_STRLEN);
+        if (c->addr_text == NULL) {
             qq_close_accepted_connection(c);
             return;
         }
+        memset(c->addr_text, 0, QQ_SOCKADDR_STRLEN);
+        c->addr_text_len = qq_sock_ntop((struct sockaddr_in *)c->sockaddr, c->addr_text);
+        if (c->addr_text_len == 0) {
+            qq_close_accepted_connection(c);
+            return;
+        }        
         qq_log_debug("connection address: %s, address len: %d",
-            c->addr_text.data, c->addr_text.len);
+            c->addr_text, c->addr_text_len);
 
         if (qq_epoll_add_connection(c) == QQ_ERROR) {
             qq_close_accepted_connection(c);
@@ -141,6 +155,8 @@ qq_event_recvmsg(qq_event_t *ev)
     u_char             msg_control[CMSG_SPACE(sizeof(struct in_pktinfo))];
 #endif
 #endif
+
+    qq_log_debug("qq_event_recvmsg(%p)", ev); 
 
     if (ev->timedout) {
         if (qq_enable_accept_events((qq_cycle_t *) qq_cycle) != QQ_OK) {
@@ -217,6 +233,7 @@ qq_event_recvmsg(qq_event_t *ev)
         memcpy(c->sockaddr, msg.msg_name, c->socklen);
 
         c->send = qq_udp_send;
+        c->recv = qq_udp_recv;
 
         c->listening = ls;
         c->local_sockaddr = (struct sockaddr *) &ls->sockaddr;
@@ -278,12 +295,19 @@ qq_event_recvmsg(qq_event_t *ev)
 
         wev->ready = 1;
 
-        c->addr_text.data = c->listening->addr_text;
-        c->addr_text.len = c->listening->addr_text_len;
-        if (c->addr_text.len == 0) {
+        c->addr_text = qq_pnalloc(c->pool, QQ_SOCKADDR_STRLEN);
+        if (c->addr_text == NULL) {
             qq_close_accepted_connection(c);
             return;
         }
+        memset(c->addr_text, 0, QQ_SOCKADDR_STRLEN);
+        c->addr_text_len = qq_sock_ntop((struct sockaddr_in *)c->sockaddr, c->addr_text);
+        if (c->addr_text_len == 0) {
+            qq_close_accepted_connection(c);
+            return;
+        }
+        qq_log_debug("connection address: %s, address len: %d",
+            c->addr_text, c->addr_text_len);
 
         ls->handler(c);
         return;
@@ -349,5 +373,9 @@ qq_close_accepted_connection(qq_connection_t *c)
 
     if (close(fd) == -1) {
         qq_log_error(errno, "close sockets failed");
+    }
+
+    if (c->pool) {
+        qq_destroy_pool(c->pool);
     }
 }

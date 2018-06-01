@@ -31,6 +31,7 @@ qq_create_listening(qq_cycle_t *cycle)
         ls[i].sockaddr.sin_port = htons(cycle->listening_config[i].port);
         ls[i].socklen = sizeof(struct sockaddr);
 
+        memset(ls[i].addr_text, 0, QQ_SOCKADDR_STRLEN);
         ls[i].addr_text_len = qq_sock_ntop(&ls[i].sockaddr, ls[i].addr_text);
         qq_log_debug("listening address: %s, address len: %d",
             ls[i].addr_text, ls[i].addr_text_len);

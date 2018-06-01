@@ -7,11 +7,12 @@
 #include "qq_config.h"
 #include "qq_core.h"
 
+#include "qq_ios_app.h"
+#include "qq_android_app.h"
+#include "qq_wifi_device.h"
+
 
 static qq_int_t qq_app_listening_init(qq_cycle_t *cycle);
-static void qq_app_ios_app_handler(qq_connection_t *c);
-static void qq_app_android_app_handler(qq_connection_t *c);
-static void qq_app_wifi_device_handler(qq_connection_t *c);
 
 
 qq_int_t
@@ -24,9 +25,33 @@ qq_app_init(qq_cycle_t *cycle)
         return QQ_ERROR;
     }
 
+    if (qq_ios_app_init(cycle) == QQ_ERROR) {
+        qq_log_error(0, "qq_ios_app_init() failed");
+        return QQ_ERROR;
+    }
+
+    if (qq_android_app_init(cycle) == QQ_ERROR) {
+        qq_log_error(0, "qq_android_app_init() failed");
+        return QQ_ERROR;
+    }
+
+    if (qq_wifi_device_init(cycle) == QQ_ERROR) {
+        qq_log_error(0, "qq_wifi_device_init() failed");
+        return QQ_ERROR;
+    }
+
     return QQ_OK;
 }
 
+void
+qq_app_done(void)
+{
+    qq_log_debug("qq_app_done()");
+
+    qq_ios_app_done();
+    qq_android_app_done();
+    qq_wifi_device_done();
+}
 
 qq_int_t
 qq_app_listening_init(qq_cycle_t *cycle)
@@ -49,33 +74,17 @@ qq_app_listening_init(qq_cycle_t *cycle)
     lcf[0].type      = SOCK_STREAM;
     lcf[0].port      = QQ_IOS_APP_TCP_LISTENING_PORT;
     lcf[0].pool_size = QQ_IOS_APP_TCP_LISTENING_POOL_SIZE;
-    lcf[0].handler   = qq_app_ios_app_handler;
+    lcf[0].handler   = qq_ios_app_connection_handler;
 
     lcf[1].type      = SOCK_STREAM;
     lcf[1].port      = QQ_ANDROID_APP_TCP_LISTENING_PORT;
     lcf[1].pool_size = QQ_ANDROID_APP_TCP_LISTENING_POOL_SIZE;
-    lcf[1].handler   = qq_app_android_app_handler;
+    lcf[1].handler   = qq_android_app_connection_handler;
 
     lcf[2].type      = SOCK_STREAM;
     lcf[2].port      = QQ_WIFI_DEVICE_TCP_LISTENING_PORT;
     lcf[2].pool_size = QQ_WIFI_DEVICE_TCP_LISTENING_POOL_SIZE;
-    lcf[2].handler   = qq_app_wifi_device_handler;
+    lcf[2].handler   = qq_wifi_device_connection_handler;
 
     return QQ_OK;
-}
-
-
-static void
-qq_app_ios_app_handler(qq_connection_t *c)
-{
-}
-
-static void
-qq_app_android_app_handler(qq_connection_t *c)
-{
-}
-
-static void
-qq_app_wifi_device_handler(qq_connection_t *c)
-{
 }

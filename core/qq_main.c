@@ -21,7 +21,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
-    //qq_process_cycle(qq_cycle);
+    qq_process_cycle(qq_cycle);
  
     return 0;
 }

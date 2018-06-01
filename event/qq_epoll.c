@@ -160,15 +160,9 @@ qq_epoll_add_connection(qq_connection_t *c)
 }
 
 qq_int_t
-qq_epoll_del_connection(qq_connection_t *c, qq_uint_t flags)
+qq_epoll_del_connection(qq_connection_t *c)
 {
     struct epoll_event  ee;
-
-    if (flags & QQ_CLOSE_EVENT) {
-        c->read->active = 0;
-        c->write->active = 0;
-        return QQ_OK;
-    }
 
     qq_log_debug("epoll del connection: fd:%d", c->fd);
 
@@ -196,6 +190,7 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
     qq_err_t           err;
     qq_event_t        *rev, *wev;
     qq_connection_t   *c;
+    qq_queue_t        *queue;
 
     qq_log_debug("epoll timer: %d", timer);
 
@@ -245,7 +240,10 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
 
         if ((revents & EPOLLIN) && rev->active) {
             rev->ready = 1;
-            rev->handler(rev);
+
+            queue = rev->accept ? &qq_posted_accept_events
+                                : &qq_posted_events;
+            qq_post_event(rev, queue);
         }
 
         wev = c->write;
@@ -256,7 +254,7 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
             }
 
             wev->ready = 1;
-            wev->handler(wev);
+            qq_post_event(wev, &qq_posted_events);
         }
     }
 
