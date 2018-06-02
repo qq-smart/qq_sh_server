@@ -45,10 +45,18 @@ static void
 qq_ios_app_read_event_handler(qq_event_t *ev)
 {
     qq_log_debug("qq_ios_app_read_event_handler()");
+
+    qq_connection_t   *c;
+    u_char             buf[3];
+    int                len;
+
+    c = ev->data;
+    len = c->recv(c, buf, 3);
+
+    c->send(c, buf, 3);
 }
 
 static void
 qq_ios_app_write_event_handler(qq_event_t *ev)
 {
-    qq_log_debug("qq_ios_app_write_event_handler()");
 }

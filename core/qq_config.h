@@ -32,4 +32,11 @@ typedef int        qq_err_t;
     (u_char *) (((uintptr_t) (p) + ((uintptr_t) a - 1)) & ~((uintptr_t) a - 1))
 
 
+#define qq_signal_helper(n)     SIG##n
+#define qq_signal_value(n)      qq_signal_helper(n)
+
+#define QQ_SHUTDOWN_SIGNAL      QUIT
+#define QQ_TERMINATE_SIGNAL     TERM
+
+
 #endif /* _QQ_CONFIG_H_INCLUDED_ */

@@ -34,6 +34,7 @@ extern qq_cycle_t  *qq_cycle;
 
 
 qq_int_t qq_cycle_init(void);
+void qq_cycle_done(void);
 
 
 #endif /* _QQ_CYCLE_H_INCLUDED_ */

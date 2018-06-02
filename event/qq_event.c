@@ -122,3 +122,17 @@ qq_events_process(void)
 
     qq_event_process_posted(&qq_posted_events);
 }
+
+void
+qq_event_done(qq_cycle_t *cycle)
+{
+    qq_log_debug("qq_event_done()");
+
+    qq_epoll_done();
+
+    free(cycle->connections);
+
+    free(cycle->read_events);
+
+    free(cycle->write_events);
+}

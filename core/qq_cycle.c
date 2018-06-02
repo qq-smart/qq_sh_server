@@ -62,3 +62,17 @@ qq_cycle_init(void)
 
     return QQ_OK;
 }
+
+void
+qq_cycle_done(void)
+{
+    qq_log_debug("qq_cycle_done()");
+
+    qq_close_listening_sockets(qq_cycle);
+
+    qq_app_done(qq_cycle);
+
+    qq_event_done(qq_cycle);
+
+    qq_destroy_pool(qq_cycle->pool);
+}

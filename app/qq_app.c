@@ -44,7 +44,7 @@ qq_app_init(qq_cycle_t *cycle)
 }
 
 void
-qq_app_done(void)
+qq_app_done(qq_cycle_t *cycle)
 {
     qq_log_debug("qq_app_done()");
 

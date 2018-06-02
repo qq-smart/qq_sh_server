@@ -88,6 +88,7 @@ struct qq_event_s {
 
 qq_int_t qq_event_init(qq_cycle_t *cycle);
 void qq_events_process(void);
+void qq_event_done(qq_cycle_t *cycle);
 
 
 #endif /* _QQ_EVENT_H_INCLUDED_ */

@@ -43,4 +43,8 @@ qq_str_rbtree_node_t *qq_str_rbtree_lookup(qq_rbtree_t *rbtree, qq_str_t *name,
     uint32_t hash);
 
 
+#define qq_value_helper(n)   #n
+#define qq_value(n)          qq_value_helper(n)
+
+
 #endif /* _QQ_STRING_H_INCLUDED_ */

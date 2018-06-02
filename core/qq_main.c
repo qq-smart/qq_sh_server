@@ -46,7 +46,13 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    if (qq_signals_init() != QQ_OK) {
+        return 1;
+    }
+
     qq_process_cycle(qq_cycle);
+
+    qq_cycle_done();
  
     return 0;
 }

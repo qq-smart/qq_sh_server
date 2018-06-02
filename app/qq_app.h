@@ -25,7 +25,7 @@
 
 
 qq_int_t qq_app_init(qq_cycle_t *cycle);
-void qq_app_done(void);
+void qq_app_done(qq_cycle_t *cycle);
 
 
 #endif /* _QQ_APP_H_INCLUDED_ */

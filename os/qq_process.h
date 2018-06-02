@@ -12,6 +12,16 @@
 #include "qq_core.h"
 
 
+typedef struct {
+    int     signo;
+    char   *signame;
+    char   *name;
+    void  (*handler)(int signo);
+} qq_signal_t;
+
+
+qq_int_t qq_signals_init(void);
+
 void qq_process_cycle(qq_cycle_t *cycle);
 
 
