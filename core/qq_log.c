@@ -96,3 +96,31 @@ qq_log_error_debug_core(int type, qq_err_t err, const char *fmt, va_list args)
         write(STDERR_FILENO, qq_log.str, len);
     }
 }
+
+
+void
+qq_log_stderr(const char *fmt, ...)
+{
+    u_char   *p, *last;
+    va_list   args;
+    u_char    errstr[QQ_MAX_LOG_STR];
+    int       len;
+
+    last = errstr + QQ_MAX_LOG_STR;
+
+    p = qq_cpymem(errstr, "qq_sh_server: ", 14);
+
+    va_start(args, fmt);
+    len = vsnprintf(p, last - QQ_LINEFEED_SIZE - p, fmt, args);
+    va_end(args);
+
+    p += len;
+    if (p > last - QQ_LINEFEED_SIZE) {
+        p = last - QQ_LINEFEED_SIZE;
+    }
+
+    qq_linefeed(p);
+
+    (void) write(STDERR_FILENO, errstr, p - errstr);
+}
+

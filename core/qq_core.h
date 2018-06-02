@@ -61,6 +61,11 @@ typedef void (*qq_connection_handler_pt)(qq_connection_t *c);
 #include "qq_epoll.h"
 
 
+#define LF     (u_char) '\n'
+#define CR     (u_char) '\r'
+#define CRLF   "\r\n"
+
+
 #define qq_abs(value)       (((value) >= 0) ? (value) : - (value))
 #define qq_max(val1, val2)  ((val1 < val2) ? (val2) : (val1))
 #define qq_min(val1, val2)  ((val1 > val2) ? (val2) : (val1))

@@ -12,6 +12,8 @@
 #include "qq_core.h"
 
 
+#define QQ_MAX_LOG_STR  256
+
 #define qq_log_time_value_len()   strlen("1979/01/01_00:00:00")
 #define qq_log_pid_value_len()    strlen("   4294967295   ")
 #define qq_log_errno_value_len()  strlen("4294967295   ")
@@ -52,6 +54,26 @@ void qq_log_error(qq_err_t err, const char *fmt, ...);
 #else
     #define qq_log_debug(fmt, ...)
 #endif
+
+
+void qq_log_stderr(const char *fmt, ...);
+
+static inline void
+qq_write_stderr(char *text)
+{
+    (void) write(STDERR_FILENO, text, strlen(text));
+}
+
+static inline void
+qq_write_stdout(char *text)
+{
+    (void) write(STDOUT_FILENO, text, strlen(text));
+}
+
+
+#define QQ_LINEFEED              "\x0a"
+#define qq_linefeed(p)          *p++ = LF;
+#define QQ_LINEFEED_SIZE         1
 
 
 #endif /* _QQ_LOG_H_INCLUDED_ */

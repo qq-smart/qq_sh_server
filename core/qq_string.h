@@ -26,6 +26,8 @@ typedef struct {
 #define qq_tolower(c)      (u_char) ((c >= 'A' && c <= 'Z') ? (c | 0x20) : c)
 #define qq_toupper(c)      (u_char) ((c >= 'a' && c <= 'z') ? (c & ~0x20) : c)
 
+#define qq_cpymem(dst, src, n)   (((u_char *) memcpy(dst, src, n)) + (n))
+
 size_t qq_strnlen(u_char *p, size_t n);
 u_char *qq_cpystrn(u_char *dst, u_char *src, size_t n);
 
