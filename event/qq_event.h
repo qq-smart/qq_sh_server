@@ -90,5 +90,7 @@ qq_int_t qq_event_init(qq_cycle_t *cycle);
 void qq_events_process(void);
 void qq_event_done(qq_cycle_t *cycle);
 
+qq_int_t qq_handle_read_event(qq_event_t *rev);
+
 
 #endif /* _QQ_EVENT_H_INCLUDED_ */

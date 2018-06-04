@@ -15,6 +15,8 @@
 /**************** network *******************/
 #define QQ_LISTEN_BACKLOG     511
 
+#define QQ_CLIENT_ACCEPT_TIMEOUT   3000
+
 #define QQ_HAVE_REVBUF        0
 #define QQ_SOCK_REVBUF_SIZE   8192
 #define QQ_HAVE_SNDBUF        0
@@ -46,3 +48,4 @@
 
 #define QQ_EPOLL_FD_SIZE              QQ_CONNECTION_NUMBER / 2
 #define QQ_EPOLL_EVENT_NUMBER         10000
+#define QQ_HAVE_EPOLLRDHUP            1

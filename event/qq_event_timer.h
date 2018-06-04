@@ -46,7 +46,7 @@ qq_event_add_timer(qq_event_t *ev, qq_msec_t timer)
             return;
         }
 
-        qq_del_timer(ev);
+        qq_event_del_timer(ev);
     }
 
     ev->timer.key = key;

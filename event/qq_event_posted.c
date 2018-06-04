@@ -22,7 +22,7 @@ qq_event_process_posted(qq_queue_t *posted)
         q = qq_queue_head(posted);
         ev = qq_queue_data(q, qq_event_t, queue);
 
-        qq_log_debug("posted event %p", ev);
+        qq_log_debug("qq_event_process_posted(ev:%p)", ev);
 
         qq_delete_posted_event(ev);
 

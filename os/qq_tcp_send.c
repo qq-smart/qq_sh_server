@@ -19,7 +19,8 @@ qq_tcp_send(qq_connection_t *c, u_char *buf, size_t size)
 
     for ( ;; ) {
         n = send(c->fd, buf, size, 0);
-        qq_log_debug("send: fd:%d %z of %uz", c->fd, n, size);
+
+        qq_log_debug("send: fd:%d n:%d of size:%d", c->fd, n, size);
 
         if (n > 0) {
             if (n < (ssize_t) size) {
@@ -29,7 +30,6 @@ qq_tcp_send(qq_connection_t *c, u_char *buf, size_t size)
         }
 
         err = errno;
-
         if (n == 0) {
             qq_log_error(err, "send() returned zero");
             wev->ready = 0;

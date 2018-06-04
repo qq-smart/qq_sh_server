@@ -33,6 +33,12 @@ typedef void (*qq_connection_handler_pt)(qq_connection_t *c);
 #define QQ_FALSE  0
 
 
+
+#define qq_abs(value)       (((value) >= 0) ? (value) : - (value))
+#define qq_max(val1, val2)  ((val1 < val2) ? (val2) : (val1))
+#define qq_min(val1, val2)  ((val1 > val2) ? (val2) : (val1))
+
+
 #include "qq_errno.h"
 #include "qq_socket.h"
 #include "qq_queue.h"
@@ -64,11 +70,6 @@ typedef void (*qq_connection_handler_pt)(qq_connection_t *c);
 #define LF     (u_char) '\n'
 #define CR     (u_char) '\r'
 #define CRLF   "\r\n"
-
-
-#define qq_abs(value)       (((value) >= 0) ? (value) : - (value))
-#define qq_max(val1, val2)  ((val1 < val2) ? (val2) : (val1))
-#define qq_min(val1, val2)  ((val1 > val2) ? (val2) : (val1))
 
 
 #endif /* _QQ_CORE_H_INCLUDED_ */

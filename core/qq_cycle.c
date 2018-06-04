@@ -14,8 +14,6 @@ qq_cycle_t   *qq_cycle;
 qq_int_t
 qq_cycle_init(void)
 {
-    qq_log_debug("qq_cycle_init()");
-
     qq_pool_t          *pool;
     qq_cycle_t         *cycle;
 

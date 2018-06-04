@@ -41,6 +41,8 @@ struct qq_listening_s {
     size_t              pool_size;
 
     qq_connection_t    *connection;
+
+    qq_msec_t           post_accept_timeout;
 };
 
 

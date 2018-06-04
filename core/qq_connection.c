@@ -17,7 +17,8 @@ qq_get_connection(qq_socket_t s)
 
     c = qq_cycle->free_connections;
     if (c == NULL) {
-        qq_log_error(0, "%ui worker_connections are not enough",
+        qq_log_error(0, 
+                     "qq_get_connection(connection_n:%u) worker_connections are not enough",
                      qq_cycle->connection_n);
 
         return NULL;
@@ -68,7 +69,7 @@ qq_close_connection(qq_connection_t *c)
     qq_socket_t  fd;
 
     if (c->fd == (qq_socket_t) -1) {
-        qq_log_error(0, "connection already closed");
+        qq_log_error(0, "qq_close_connection() connection already closed");
         return;
     }
 
@@ -99,6 +100,6 @@ qq_close_connection(qq_connection_t *c)
     c->fd = (qq_socket_t) -1;
 
     if (close(fd) == -1) {
-        qq_log_error(errno, "close socket %d failed", fd);
+        qq_log_error(errno, "qq_close_connection(fd:%d) failed", fd);
     }
 }

@@ -16,8 +16,6 @@ static qq_uint_t            nevents;
 qq_int_t
 qq_epoll_init(void)
 {
-    qq_log_debug("qq_epoll_init()");
-
     if (ep == -1) {
         ep = epoll_create(QQ_CONNECTION_NUMBER);
 
@@ -186,7 +184,6 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
     int                events;
     uint32_t           revents;
     qq_int_t           instance, i;
-    qq_uint_t          level;
     qq_err_t           err;
     qq_event_t        *rev, *wev;
     qq_connection_t   *c;
@@ -231,7 +228,7 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
 
         revents = event_list[i].events;
 
-        qq_log_debug("epoll: fd:%d ev:%04XD d:%p", c->fd, revents, event_list[i].data.ptr);
+        qq_log_debug("epoll process: fd:%d ev:%04XD d:%p", c->fd, revents, event_list[i].data.ptr);
 
         if (revents & (EPOLLERR|EPOLLHUP)) {
             qq_log_debug("epoll_wait() error on fd:%d ev:%04XD", c->fd, revents);
@@ -239,6 +236,15 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
         }
 
         if ((revents & EPOLLIN) && rev->active) {
+#if (QQ_HAVE_EPOLLRDHUP)
+            if (revents & EPOLLRDHUP) {
+                qq_log_debug("epollrdhup on fd:%d", c->fd);
+                rev->pending_eof = 1;
+            }
+            rev->available = 1;
+#endif
+
+            qq_log_debug("epollin event fd:%d", c->fd);
             rev->ready = 1;
 
             queue = rev->accept ? &qq_posted_accept_events
@@ -253,6 +259,7 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
                 continue;
             }
 
+            qq_log_debug("epollout event fd:%d", c->fd);
             wev->ready = 1;
             qq_post_event(wev, &qq_posted_events);
         }

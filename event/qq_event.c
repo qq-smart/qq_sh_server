@@ -16,8 +16,6 @@ qq_event_init(qq_cycle_t *cycle)
     qq_listening_t     *ls;
     qq_connection_t    *c, *next;
 
-    qq_log_debug("qq_event_init()");
-
     qq_queue_init(&qq_posted_accept_events);
     qq_queue_init(&qq_posted_events);
 
@@ -29,7 +27,6 @@ qq_event_init(qq_cycle_t *cycle)
         return QQ_ERROR;
     }
 
-    qq_log_debug("connection pool malloc");
     cycle->connections = qq_alloc(sizeof(qq_connection_t) * cycle->connection_n);
     if (cycle->connections == NULL) {
         qq_log_error(0, "connection malloc(%d) failed", cycle->connection_n);
@@ -37,7 +34,6 @@ qq_event_init(qq_cycle_t *cycle)
     }
     c = cycle->connections;
 
-    qq_log_debug("read event pool malloc");
     cycle->read_events = qq_alloc(sizeof(qq_event_t) * cycle->connection_n);
     if (cycle->read_events == NULL) {
         qq_log_error(0, "read_events malloc(%d) failed", cycle->connection_n);
@@ -49,7 +45,6 @@ qq_event_init(qq_cycle_t *cycle)
         rev[i].instance = 1;
     }
 
-    qq_log_debug("write event pool malloc");
     cycle->write_events = qq_alloc(sizeof(qq_event_t) * cycle->connection_n);
     if (cycle->write_events == NULL) {
         qq_log_error(0, "write_events malloc(%d) failed", cycle->connection_n);
@@ -135,4 +130,19 @@ qq_event_done(qq_cycle_t *cycle)
     free(cycle->read_events);
 
     free(cycle->write_events);
+}
+
+
+qq_int_t
+qq_handle_read_event(qq_event_t *rev)
+{
+    if (!rev->active && !rev->ready) {
+        if (qq_epoll_add_event(rev, QQ_READ_EVENT)
+            == QQ_ERROR)
+        {
+            return QQ_ERROR;
+        }
+    }
+
+    return QQ_OK;
 }

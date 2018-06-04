@@ -15,7 +15,6 @@ static void qq_wifi_device_write_event_handler(qq_event_t *ev);
 qq_int_t
 qq_wifi_device_init(qq_cycle_t *cycle)
 {
-    qq_log_debug("qq_wifi_device_init()");
     return QQ_OK;
 }
 
@@ -27,11 +26,11 @@ qq_wifi_device_done(void)
 
 
 void
-qq_wifi_device_connection_handler(qq_connection_t *c)
+qq_wifi_device_init_connection_handler(qq_connection_t *c)
 {
     qq_event_t   *rev, *wev;
 
-    qq_log_debug("qq_wifi_device_connection_handler()");
+    qq_log_debug("qq_wifi_device_init_connection_handler()");
 
     rev = c->read;
     rev->handler = qq_wifi_device_read_event_handler;
@@ -59,4 +58,5 @@ qq_wifi_device_read_event_handler(qq_event_t *ev)
 static void
 qq_wifi_device_write_event_handler(qq_event_t *ev)
 {
+    qq_log_debug("qq_wifi_device_write_event_handler()");
 }

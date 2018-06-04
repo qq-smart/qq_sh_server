@@ -15,8 +15,6 @@ qq_create_listening(qq_cycle_t *cycle)
     int              i;
     qq_listening_t  *ls;
 
-    qq_log_debug("qq_create_listening()");
-
     size = sizeof(qq_listening_t) * cycle->nlistening;
     cycle->listening = qq_pcalloc(cycle->pool, size);
     if (cycle->listening == NULL) {
@@ -45,6 +43,8 @@ qq_create_listening(qq_cycle_t *cycle)
 
         ls[i].handler = cycle->listening_config[i].handler;
         ls[i].pool_size = cycle->listening_config[i].pool_size;
+
+        ls[i].post_accept_timeout = QQ_CLIENT_ACCEPT_TIMEOUT;
     }
 
     return QQ_OK;
@@ -58,8 +58,6 @@ qq_open_listening_sockets(qq_cycle_t *cycle)
     qq_err_t         err;
     qq_socket_t      s;
     qq_listening_t  *ls;
-
-    qq_log_debug("qq_open_listening_sockets()");
 
     for (tries = 5; tries; tries--) {
         failed = 0;
@@ -187,8 +185,6 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
 #if (QQ_HAVE_DEFERRED_ACCEPT)
     struct accept_filter_arg   af;
 #endif
-
-    qq_log_debug("qq_configure_listening_sockets()");
 
     ls = cycle->listening;
     for (i = 0; i < cycle->nlistening; i++) {
