@@ -136,6 +136,9 @@ qq_open_listening_sockets(qq_cycle_t *cycle)
                 continue;
             }
 
+            qq_log_debug("qq_open_listening_sockets() -> listen() to %s, backlog %d ",
+                ls[i].addr_text, ls[i].backlog);
+
             if (listen(s, ls[i].backlog) == -1) {
                 err = errno;
                 if (err != QQ_EADDRINUSE) {
@@ -289,12 +292,15 @@ qq_configure_listening_sockets(qq_cycle_t *cycle)
         }
 #endif
 
-        qq_log_debug("listen() to %s, backlog %d", ls[i].addr_text, ls[i].backlog);
-        if (listen(ls[i].fd, ls[i].backlog) == -1) {
-            qq_log_error(errno,
-                         "listen() to %s, backlog %d failed, ignored",
-                         ls[i].addr_text, ls[i].backlog);
-            return QQ_ERROR;
+        if (ls[i].type == SOCK_STREAM) {
+            qq_log_debug("qq_configure_listening_sockets() -> listen() to %s, backlog %d", ls[i].addr_text, ls[i].backlog);
+
+            if (listen(ls[i].fd, ls[i].backlog) == -1) {
+                qq_log_error(errno,
+                             "listen() to %s, backlog %d failed, ignored",
+                             ls[i].addr_text, ls[i].backlog);
+                return QQ_ERROR;
+            }
         }
 
 #if (QQ_HAVE_DEFERRED_ACCEPT)

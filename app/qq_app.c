@@ -10,6 +10,7 @@
 #include "qq_ios_app.h"
 #include "qq_android_app.h"
 #include "qq_wifi_device.h"
+#include "qq_video_audio_device.h"
 
 
 static qq_int_t qq_app_listening_init(qq_cycle_t *cycle);
@@ -38,6 +39,11 @@ qq_app_init(qq_cycle_t *cycle)
         return QQ_ERROR;
     }
 
+    if (qq_video_audio_device_init(cycle) == QQ_ERROR) {
+        qq_log_error(0, "qq_video_audio_device_init() failed");
+        return QQ_ERROR;
+    }
+
     return QQ_OK;
 }
 
@@ -49,6 +55,7 @@ qq_app_done(qq_cycle_t *cycle)
     qq_ios_app_done();
     qq_android_app_done();
     qq_wifi_device_done();
+    qq_video_audio_device_done();
 }
 
 void
@@ -97,6 +104,11 @@ qq_app_listening_init(qq_cycle_t *cycle)
     lcf[2].port      = QQ_WIFI_DEVICE_TCP_LISTENING_PORT;
     lcf[2].pool_size = QQ_WIFI_DEVICE_TCP_LISTENING_POOL_SIZE;
     lcf[2].handler   = qq_wifi_device_init_connection_handler;
+
+    lcf[3].type      = SOCK_DGRAM;
+    lcf[3].port      = QQ_VIDEO_AUDIO_DEVICE_UDP_LISTENING_PORT;
+    lcf[3].pool_size = QQ_VIDEO_AUDIO_DEVICE_UDP_LISTENING_POOL_SIZE;
+    lcf[3].handler   = qq_video_audio_device_init_connection_handler;
 
     return QQ_OK;
 }

@@ -200,6 +200,10 @@ qq_epoll_process_events(qq_msec_t timer, qq_uint_t flags)
     }
 
     if (err) {
+        if (err == QQ_EINTR) {
+            return QQ_OK;
+        }
+
         qq_log_error(err, "epoll_wait() failed");
         return QQ_ERROR;
     }

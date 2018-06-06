@@ -8,36 +8,36 @@
 #include "qq_core.h"
 
 
-static void qq_ios_app_wait_request_handler(qq_event_t *ev);
-static void qq_ios_app_process_request_handler(qq_event_t *rev);
-static void qq_ios_app_write_event_handler(qq_event_t *ev);
+static void qq_video_audio_device_wait_request_handler(qq_event_t *ev);
+static void qq_video_audio_device_process_request_handler(qq_event_t *rev);
+static void qq_video_audio_device_write_event_handler(qq_event_t *ev);
 
 
 qq_int_t
-qq_ios_app_init(qq_cycle_t *cycle)
+qq_video_audio_device_init(qq_cycle_t *cycle)
 {
     return QQ_OK;
 }
 
 void
-qq_ios_app_done(void)
+qq_video_audio_device_done(void)
 {
-    qq_log_debug("qq_ios_app_done()");
+    qq_log_debug("qq_video_audio_device_done()");
 }
 
 
 void
-qq_ios_app_init_connection_handler(qq_connection_t *c)
+qq_video_audio_device_init_connection_handler(qq_connection_t *c)
 {
     qq_event_t   *rev, *wev;
 
-    qq_log_debug("qq_ios_app_init_connection_handler()");
+    qq_log_debug("qq_video_audio_device_init_connection_handler()");
 
     rev = c->read;
-    rev->handler = qq_ios_app_wait_request_handler;
+    rev->handler = qq_video_audio_device_wait_request_handler;
 
     wev = c->write;
-    wev->handler = qq_ios_app_write_event_handler;
+    wev->handler = qq_video_audio_device_write_event_handler;
 
     qq_event_add_timer(rev, c->listening->post_accept_timeout);
 
@@ -49,7 +49,7 @@ qq_ios_app_init_connection_handler(qq_connection_t *c)
 
 
 static void
-qq_ios_app_wait_request_handler(qq_event_t *rev)
+qq_video_audio_device_wait_request_handler(qq_event_t *rev)
 {
     qq_connection_t   *c;
     ssize_t            n;
@@ -59,7 +59,7 @@ qq_ios_app_wait_request_handler(qq_event_t *rev)
 
     c = rev->data;
 
-    qq_log_debug("qq_ios_app_wait_request_handler()");
+    qq_log_debug("qq_video_audio_device_wait_request_handler()");
 
     if (rev->timedout) {
         qq_log_error(QQ_ETIMEDOUT, "client timed out");
@@ -98,20 +98,18 @@ qq_ios_app_wait_request_handler(qq_event_t *rev)
 
     c->send(c, buf, 3);
 
-    rev->handler = qq_ios_app_process_request_handler;
-    qq_ios_app_process_request_handler(rev);
+    rev->handler = qq_video_audio_device_process_request_handler;
+    qq_video_audio_device_process_request_handler(rev);
 }
 
 static void
-qq_ios_app_process_request_handler(qq_event_t *rev)
+qq_video_audio_device_process_request_handler(qq_event_t *rev)
 {
-    qq_log_debug("qq_ios_app_process_request_handler()");
-
-    
+    qq_log_debug("qq_video_audio_device_process_request_handler()");
 }
 
 static void
-qq_ios_app_write_event_handler(qq_event_t *ev)
+qq_video_audio_device_write_event_handler(qq_event_t *ev)
 {
-    qq_log_debug("qq_ios_app_write_event_handler()");
+    qq_log_debug("qq_video_audio_device_write_event_handler()");
 }
