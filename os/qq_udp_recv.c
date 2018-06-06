@@ -20,7 +20,7 @@ qq_udp_recv(qq_connection_t *c, u_char *buf, size_t size)
     do {
         n = recv(c->fd, buf, size, 0);
 
-        qq_log_debug("recv: fd:%d %z of %uz", c->fd, n, size);
+        qq_log_debug("recv: fd:%d %d of %d", c->fd, n, size);
 
         if (n >= 0) {
             return n;
@@ -32,12 +32,16 @@ qq_udp_recv(qq_connection_t *c, u_char *buf, size_t size)
             qq_log_debug("recv() not ready");
             n = QQ_AGAIN;
         } else {
+            n = QQ_ERROR;
             break;
         }
-
     } while (err == QQ_EINTR);
 
     rev->ready = 0;
+
+    if (n == QQ_ERROR) {
+        rev->error = 1;
+    }
 	
     return n;
 }

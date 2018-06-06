@@ -20,8 +20,8 @@ qq_udp_send(qq_connection_t *c, u_char *buf, size_t size)
     for ( ;; ) {
         n = sendto(c->fd, buf, size, 0, c->sockaddr, c->socklen);
 
-        qq_log_debug("sendto: fd:%d %z of %uz to \"%V\"",
-                     c->fd, n, size, &c->addr_text);
+        qq_log_debug("sendto: fd:%d %d of %d to \"%s\"",
+                     c->fd, n, size, c->addr_text);
 
         if (n >= 0) {
             if ((size_t) n != size) {
