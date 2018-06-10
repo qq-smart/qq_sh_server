@@ -12,10 +12,12 @@
 #include "qq_core.h"
 
 
+#define QQ_WIFI_DEVICE_TCP_LISTENING_PORT       12000
+#define QQ_WIFI_DEVICE_TCP_LISTENING_POOL_SIZE  512
+
+
 qq_int_t qq_wifi_device_init(qq_cycle_t *cycle);
 void qq_wifi_device_done(void);
-
-void qq_wifi_device_init_connection_handler(qq_connection_t *c);
 
 
 #endif /* _QQ_WIFI_DEVICE_H_INCLUDED_ */

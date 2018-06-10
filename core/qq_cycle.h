@@ -29,6 +29,7 @@ struct qq_cycle_s {
     size_t                   nlistening;
     qq_listening_t          *listening;
     qq_listening_config_t   *listening_config;
+    qq_listening_config_t   *current_listening_config;
 };
 extern qq_cycle_t  *qq_cycle;
 

@@ -27,6 +27,7 @@ qq_event_init(qq_cycle_t *cycle)
         return QQ_ERROR;
     }
 
+    cycle->connection_n = QQ_CONNECTION_NUMBER;
     cycle->connections = qq_alloc(sizeof(qq_connection_t) * cycle->connection_n);
     if (cycle->connections == NULL) {
         qq_log_error(0, "connection malloc(%d) failed", cycle->connection_n);

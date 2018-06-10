@@ -22,23 +22,16 @@ struct qq_event_s {
 
     unsigned         accept:1;
 
-    /* used to detect the stale events in kqueue and epoll */
     unsigned         instance:1;
 
-    /*
-     * the event was passed or would be passed to a kernel;
-     * in aio mode - operation was posted.
-     */
     unsigned         active:1;
 
     unsigned         disabled:1;
 
-    /* the ready event; in aio mode 0 means that no operation can be posted */
     unsigned         ready:1;
 
     unsigned         oneshot:1;
 
-    /* aio operation is complete */
     unsigned         complete:1;
 
     unsigned         eof:1;
@@ -51,14 +44,12 @@ struct qq_event_s {
 
     unsigned         deferred_accept:1;
 
-    /* the pending eof reported by kqueue, epoll or in aio chain operation */
     unsigned         pending_eof:1;
 
     unsigned         posted:1;
 
     unsigned         closed:1;
 
-    /* to test on worker exit */
     unsigned         channel:1;
     unsigned         resolver:1;
 
@@ -72,7 +63,6 @@ struct qq_event_s {
 
     qq_rbtree_node_t   timer;
 
-    /* the posted queue */
     qq_queue_t      queue;
 };
 

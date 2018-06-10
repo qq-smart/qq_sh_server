@@ -52,7 +52,6 @@ qq_cycle_init(void)
         return QQ_ERROR;
     }
 
-    cycle->connection_n = QQ_CONNECTION_NUMBER;
     if (qq_event_init(cycle) == QQ_ERROR) {
         qq_log_error(0, "qq_event_init() failed");
         return QQ_ERROR;

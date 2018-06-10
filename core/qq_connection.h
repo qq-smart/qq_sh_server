@@ -19,6 +19,8 @@ struct qq_connection_s {
 
     qq_socket_t         fd;
 
+    qq_buf_t           *buffer;
+
     qq_recv_pt          recv;
     qq_send_pt          send;
 

@@ -8,43 +8,86 @@
 #include "qq_core.h"
 
 
+qq_int_t qq_add_listening_config(int type, int port,
+    size_t pool_size, qq_connection_handler_pt handler)
+{
+    size_t                  size;
+    qq_listening_config_t  *lcf;
+
+    size = sizeof(qq_listening_config_t);
+    lcf = qq_calloc(size);
+    if (lcf == NULL) {
+        qq_log_error(0, "qq_add_listening_config() malloc(%u) failed", size);
+        return QQ_ERROR;
+    }
+    lcf->type = type;
+    lcf->port = port;
+    lcf->pool_size = pool_size;
+    lcf->handler = handler;
+
+    if (qq_cycle->current_listening_config == NULL) {
+        qq_cycle->current_listening_config = lcf;
+        qq_cycle->listening_config = lcf;
+    }
+    else {
+        qq_cycle->current_listening_config->next = lcf;
+        qq_cycle->current_listening_config = lcf;
+    }
+    qq_cycle->nlistening += 1;
+
+    return QQ_OK;
+}
+
 qq_int_t
 qq_create_listening(qq_cycle_t *cycle)
 {
-    size_t           size;
-    int              i;
-    qq_listening_t  *ls;
+    size_t                  size;
+    int                     i;
+    qq_listening_t         *ls;
+    qq_listening_config_t  *p, *n;
 
     size = sizeof(qq_listening_t) * cycle->nlistening;
     cycle->listening = qq_pcalloc(cycle->pool, size);
     if (cycle->listening == NULL) {
-        qq_log_error(0, "qq_listening_t malloc(%uz) failed", size);
+        qq_log_error(0, "qq_listening_t malloc(%u) failed", size);
         return QQ_ERROR;
     }
+
+    cycle->current_listening_config = cycle->listening_config;
 
     ls = cycle->listening;
     for (i = 0; i < cycle->nlistening; i++) {
         ls[i].sockaddr.sin_family = AF_INET;
         ls[i].sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-        ls[i].sockaddr.sin_port = htons(cycle->listening_config[i].port);
+        ls[i].sockaddr.sin_port = htons(cycle->current_listening_config->port);
         ls[i].socklen = sizeof(struct sockaddr);
 
-        memset(ls[i].addr_text, 0, QQ_SOCKADDR_STRLEN);
         ls[i].addr_text_len = qq_sock_ntop(&ls[i].sockaddr, ls[i].addr_text);
         qq_log_debug("listening address: %s, address len: %d",
             ls[i].addr_text, ls[i].addr_text_len);
 
         ls[i].fd = (qq_socket_t) -1;
-        ls[i].type = cycle->listening_config[i].type;
+        ls[i].type = cycle->current_listening_config->type;
 
         ls[i].backlog = QQ_LISTEN_BACKLOG;
         ls[i].rcvbuf = QQ_SOCK_REVBUF_SIZE;
         ls[i].sndbuf = QQ_SOCK_SNDBUF_SIZE;
 
-        ls[i].handler = cycle->listening_config[i].handler;
-        ls[i].pool_size = cycle->listening_config[i].pool_size;
+        ls[i].handler = cycle->current_listening_config->handler;
+        ls[i].pool_size = cycle->current_listening_config->pool_size;
 
         ls[i].post_accept_timeout = QQ_CLIENT_ACCEPT_TIMEOUT;
+
+        cycle->current_listening_config = cycle->current_listening_config->next;
+    }
+
+    for (p = cycle->listening_config, n = cycle->listening_config->next;
+         /* void */;
+         p = n, n = n->next) {
+        free(p);
+        if (n == NULL) {
+            break;
+        }
     }
 
     return QQ_OK;

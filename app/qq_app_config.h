@@ -12,6 +12,11 @@
 #define QQ_CONNECTION_NUMBER  20000
 
 
+/**************** json *******************/
+#define QQ_HAVE_JSON       1
+#define QQ_JSON_POOL_SIZE  65536
+
+
 /**************** network *******************/
 #define QQ_LISTEN_BACKLOG     511
 

@@ -39,6 +39,10 @@ typedef void (*qq_connection_handler_pt)(qq_connection_t *c);
 #define qq_min(val1, val2)  ((val1 > val2) ? (val2) : (val1))
 
 
+#if (QQ_HAVE_JSON)
+#include "qq_json.h"
+#endif
+
 #include "qq_errno.h"
 #include "qq_socket.h"
 #include "qq_queue.h"
@@ -50,6 +54,7 @@ typedef void (*qq_connection_handler_pt)(qq_connection_t *c);
 #include "qq_inet.h"
 #include "qq_alloc.h"
 #include "qq_palloc.h"
+#include "qq_buf.h"
 #include "qq_files.h"
 #include "qq_event.h"
 #include "qq_listening.h"

@@ -41,6 +41,13 @@ main(int argc, char *const *argv)
 
     qq_log_init(getpid());
 
+#if (QQ_HAVE_JSON)
+    if (qq_cjson_init(QQ_JSON_POOL_SIZE) != 0) {
+        qq_log_error(0, "qq_cjson_init() failed");
+        return 1;
+    }
+#endif
+
     if (qq_cycle_init() == QQ_ERROR) {
         qq_log_error(0, "qq_cycle_init() failed");
         return 1;
@@ -52,6 +59,7 @@ main(int argc, char *const *argv)
 
     qq_process_cycle(qq_cycle);
 
+    qq_cjson_done();
     qq_cycle_done();
  
     return 0;

@@ -139,24 +139,13 @@ void
 qq_event_recvmsg(qq_event_t *ev)
 {
     ssize_t            n;
+    size_t             size;
     qq_err_t           err;
-    qq_event_t        *rev, *wev;
     struct iovec       iov[1];
     struct msghdr      msg;
     struct sockaddr    sa;
     qq_listening_t    *ls;
-    qq_connection_t   *c, *lc;
-    static u_char      buffer[65535];
-
-#if (QQ_HAVE_MSGHDR_MSG_CONTROL)
-#if (QQ_HAVE_IP_RECVDSTADDR)
-    u_char             msg_control[CMSG_SPACE(sizeof(struct in_addr))];
-#elif (QQ_HAVE_IP_PKTINFO)
-    u_char             msg_control[CMSG_SPACE(sizeof(struct in_pktinfo))];
-#endif
-#endif
-
-    qq_log_debug("qq_event_recvmsg(%p)", ev); 
+    qq_connection_t   *c;
 
     if (ev->timedout) {
         if (qq_enable_accept_events((qq_cycle_t *) qq_cycle) != QQ_OK) {
@@ -165,155 +154,99 @@ qq_event_recvmsg(qq_event_t *ev)
         ev->timedout = 0;
     }
 
-    lc = ev->data;
-    ls = lc->listening;
+    c = ev->data;
+    ls = c->listening;
     ev->ready = 0;
 
-    qq_log_debug("recvmsg on %s", ls->addr_text);
+    qq_log_debug("qq_event_recvmsg() on %s, ready: %d", ls->addr_text, ev->available);
 
-    for (;;) {
-        memset(&msg, 0, sizeof(struct msghdr));
-
-        iov[0].iov_base = (void *) buffer;
-        iov[0].iov_len = sizeof(buffer);
-
-        msg.msg_name = &sa;
-        msg.msg_namelen = sizeof(struct sockaddr);
-        msg.msg_iov = iov;
-        msg.msg_iovlen = 1;
-
-#if (QQ_HAVE_MSGHDR_MSG_CONTROL)
-#if (QQ_HAVE_IP_RECVDSTADDR || QQ_HAVE_IP_PKTINFO)
-        if (ls->sockaddr->sa_family == AF_INET) {
-            msg.msg_control = &msg_control;
-            msg.msg_controllen = sizeof(msg_control);
-        }
-#endif
-#endif
-
-        n = recvmsg(lc->fd, &msg, 0);
-        if (n == -1) {
-            err = errno;
-            if (err == QQ_EAGAIN) {
-                qq_log_debug("recvmsg() not ready");
-                return;
-            }
-
-            qq_log_error(err, "recvmsg() failed");
-            return;
-        }
-
-#if (QQ_HAVE_MSGHDR_MSG_CONTROL)
-        if (msg.msg_flags & (MSG_TRUNC|MSG_CTRUNC)) {
-            qq_log_error(0, "recvmsg() truncated data");
-            continue;
-        }
-#endif
-
-        c = qq_get_connection(lc->fd);
-        if (c == NULL) {
-            return;
-        }
-
-        c->shared = 1;
-        c->type = SOCK_DGRAM;
-        c->socklen = sizeof(struct sockaddr);
+    if (c->pool == NULL) {
+        qq_log_debug("c->pool == NULL");
 
         c->pool = qq_create_pool(ls->pool_size);
         if (c->pool == NULL) {
-            qq_close_accepted_connection(c);
+            qq_log_error(0, "qq_create_pool(%d) failed", ls->pool_size);
             return;
         }
 
+        c->socklen = sizeof(struct sockaddr);
         c->sockaddr = qq_palloc(c->pool, c->socklen);
         if (c->sockaddr == NULL) {
-            qq_close_accepted_connection(c);
+            qq_destroy_pool(c->pool);
+            c->pool = NULL;
             return;
         }
-        memcpy(c->sockaddr, msg.msg_name, c->socklen);
 
+        c->addr_text = qq_palloc(c->pool, QQ_SOCKADDR_STRLEN);
+        if (c->addr_text == NULL) {
+            qq_destroy_pool(c->pool);
+            c->pool = NULL;
+            return;
+        }
+
+        c->buffer = qq_pcalloc(c->pool, sizeof(qq_buf_t));
+        if (c->buffer == NULL) {
+            qq_destroy_pool(c->pool);
+            c->pool = NULL;
+            return;
+        }
+        size = ls->pool_size -
+            ((size_t)((uintptr_t)c->buffer - (uintptr_t)c->pool) + sizeof(qq_buf_t));
+        c->buffer->start = qq_pnalloc(c->pool, size);
+        if (c->buffer->start == NULL) {
+            qq_destroy_pool(c->pool);
+            c->pool = NULL;
+            return;
+        }
+        c->buffer->pos = c->buffer->start;
+        c->buffer->last = c->buffer->start;
+        c->buffer->end = c->buffer->last + size;
+        c->buffer->temporary = 1;
+
+        c->shared = 1;
         c->send = qq_udp_send;
-        c->recv = qq_udp_recv;
-
-        c->listening = ls;
         c->local_sockaddr = (struct sockaddr *) &ls->sockaddr;
         c->local_socklen = ls->socklen;
+    }
 
-#if (QQ_HAVE_MSGHDR_MSG_CONTROL)
-        if (ls->wildcard) {
-            struct cmsghdr   *cmsg;
-            struct sockaddr  *sockaddr;
+    memset(&msg, 0, sizeof(struct msghdr));
 
-            sockaddr = qq_palloc(c->pool, c->local_socklen);
-            if (sockaddr == NULL) {
-                qq_close_accepted_connection(c);
-                return;
-            }
+    iov[0].iov_base = (void *) c->buffer->pos;
+    iov[0].iov_len = c->buffer->end - c->buffer->start;
 
-            memcpy(sockaddr, c->local_sockaddr, c->local_socklen);
-            c->local_sockaddr = sockaddr;
+    msg.msg_name = &sa;
+    msg.msg_namelen = sizeof(struct sockaddr);
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
 
-            for (cmsg = CMSG_FIRSTHDR(&msg);
-                 cmsg != NULL;
-                 cmsg = CMSG_NXTHDR(&msg, cmsg))
-            {
-#if (NGX_HAVE_IP_RECVDSTADDR)
-                if (cmsg->cmsg_level == IPPROTO_IP
-                    && cmsg->cmsg_type == IP_RECVDSTADDR
-                    && sockaddr->sa_family == AF_INET)
-                {
-                    struct in_addr      *addr;
-                    struct sockaddr_in  *sin;
+    n = recvmsg(c->fd, &msg, 0);
 
-                    addr = (struct in_addr *) CMSG_DATA(cmsg);
-                    sin = (struct sockaddr_in *) sockaddr;
-                    sin->sin_addr = *addr;
-
-                    break;
-                }
-#elif (NGX_HAVE_IP_PKTINFO)
-                if (cmsg->cmsg_level == IPPROTO_IP
-                    && cmsg->cmsg_type == IP_PKTINFO
-                    && sockaddr->sa_family == AF_INET)
-                {
-                    struct in_pktinfo   *pkt;
-                    struct sockaddr_in  *sin;
-
-                    pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
-                    sin = (struct sockaddr_in *) sockaddr;
-                    sin->sin_addr = pkt->ipi_addr;
-                    break;
-                }
-#endif
-            }
-        }
-
-#endif
-
-        rev = c->read;
-        wev = c->write;
-
-        wev->ready = 1;
-
-        c->addr_text = qq_pnalloc(c->pool, QQ_SOCKADDR_STRLEN);
-        if (c->addr_text == NULL) {
-            qq_close_accepted_connection(c);
+    if (n == -1) {
+        err = errno;
+        if (err == QQ_EAGAIN) {
+            qq_log_debug("recvmsg() not ready");
             return;
         }
-        memset(c->addr_text, 0, QQ_SOCKADDR_STRLEN);
-        c->addr_text_len = qq_sock_ntop((struct sockaddr_in *)c->sockaddr, c->addr_text);
-        if (c->addr_text_len == 0) {
-            qq_close_accepted_connection(c);
-            return;
-        }
-        qq_log_debug("connection address: %s, address len: %d",
-            c->addr_text, c->addr_text_len);
 
-        ls->handler(c);
+        qq_log_error(err, "recvmsg() failed");
         return;
     }
-}
 
+    memcpy(c->sockaddr, msg.msg_name, c->socklen);
+
+    c->buffer->last += n;
+
+    c->write->ready = 1;
+
+    memset(c->addr_text, 0, QQ_SOCKADDR_STRLEN);
+    c->addr_text_len = qq_sock_ntop((struct sockaddr_in *)c->sockaddr, c->addr_text);
+    if (c->addr_text_len != 0) {
+        qq_log_debug("connection address: %s, address len: %d",
+            c->addr_text, c->addr_text_len);
+    }
+
+    ls->handler(c);
+}
 
 static qq_int_t
 qq_enable_accept_events(qq_cycle_t *cycle)

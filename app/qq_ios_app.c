@@ -7,7 +7,10 @@
 #include "qq_config.h"
 #include "qq_core.h"
 
+#include "qq_ios_app.h"
 
+
+static void qq_ios_app_init_connection_handler(qq_connection_t *c);
 static void qq_ios_app_wait_request_handler(qq_event_t *ev);
 static void qq_ios_app_process_request_handler(qq_event_t *rev);
 static void qq_ios_app_write_event_handler(qq_event_t *ev);
@@ -16,6 +19,15 @@ static void qq_ios_app_write_event_handler(qq_event_t *ev);
 qq_int_t
 qq_ios_app_init(qq_cycle_t *cycle)
 {
+    if (qq_add_listening_config(SOCK_STREAM,
+        QQ_IOS_APP_TCP_LISTENING_PORT,
+        QQ_IOS_APP_TCP_LISTENING_POOL_SIZE,
+        qq_ios_app_init_connection_handler) == QQ_ERROR)
+    {
+        qq_log_error(0, "qq_ios_app_init()->qq_add_listening_config() failed");
+        return QQ_ERROR;
+    }
+
     return QQ_OK;
 }
 
@@ -26,7 +38,7 @@ qq_ios_app_done(void)
 }
 
 
-void
+static void
 qq_ios_app_init_connection_handler(qq_connection_t *c)
 {
     qq_event_t   *rev, *wev;
