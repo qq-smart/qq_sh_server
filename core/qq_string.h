@@ -31,6 +31,9 @@ typedef struct {
 size_t qq_strnlen(u_char *p, size_t n);
 u_char *qq_cpystrn(u_char *dst, u_char *src, size_t n);
 
+u_char *qq_hex_dump(u_char *dst, u_char *src, size_t len);
+qq_int_t qq_str_to_hex(u_char *str, u_char *hex, size_t strlen);
+
 
 typedef struct {
     qq_rbtree_node_t   rbtree;

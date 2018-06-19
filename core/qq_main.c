@@ -59,7 +59,10 @@ main(int argc, char *const *argv)
 
     qq_process_cycle(qq_cycle);
 
+#if (QQ_HAVE_JSON)
     qq_cjson_done();
+#endif
+
     qq_cycle_done();
  
     return 0;

@@ -28,11 +28,6 @@ extern "C"
 {
 #endif
 
-
-#include "qq_core.h"
-#include "qq_config.h"
-
-
 /* cJSON Types: */
 #define cJSON_False 0
 #define cJSON_True 1
@@ -66,11 +61,6 @@ typedef struct cJSON_Hooks {
 
 
 //---------------------------------------------------------------------------------------
-#define QQ_CJSON_ALIGNMENT   sizeof(unsigned long)
-
-#define qq_cjson_align_ptr(p, a) \
-    (u_char *) (((uintptr_t) (p) + ((uintptr_t) a - 1)) & ~((uintptr_t) a - 1))
-
 int qq_cjson_init(size_t size);
 void qq_cjson_done(void);
 //---------------------------------------------------------------------------------------

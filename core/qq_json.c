@@ -30,12 +30,20 @@
 #include <float.h>
 #include <limits.h>
 #include <ctype.h>
-#include "qq_json.h"
+
+#include "qq_config.h"
+#include "qq_core.h"
 
 static const char *ep;
 
 
 //---------------------------------------------------------------------------------------
+#define QQ_CJSON_ALIGNMENT   sizeof(unsigned long)
+
+#define qq_cjson_align_ptr(p, a) \
+    (u_char *) (((uintptr_t) (p) + ((uintptr_t) a - 1)) & ~((uintptr_t) a - 1))
+
+
 typedef struct {
     u_char  *start;
     u_char  *pos;
@@ -70,6 +78,8 @@ static void *qq_cjson_malloc(size_t size)
 {
     u_char  *m;
 
+    qq_log_debug("qq_cjson_malloc(size: %d)", size);
+
     m = qq_cjson_buf->pos;
     m = qq_cjson_align_ptr(m, QQ_CJSON_ALIGNMENT);
 
@@ -83,6 +93,8 @@ static void *qq_cjson_malloc(size_t size)
 
 static void qq_cjson_free(void *ptr)
 {
+    qq_log_debug("qq_cjson_free()");
+
     qq_cjson_buf->pos = qq_cjson_buf->start;
 }
 //---------------------------------------------------------------------------------------

@@ -213,6 +213,7 @@ qq_event_recvmsg(qq_event_t *ev)
 
     iov[0].iov_base = (void *) c->buffer->pos;
     iov[0].iov_len = c->buffer->end - c->buffer->start;
+    qq_log_debug("recvmsg(size: %d)", c->buffer->end - c->buffer->start);
 
     msg.msg_name = &sa;
     msg.msg_namelen = sizeof(struct sockaddr);

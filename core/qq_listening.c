@@ -76,8 +76,6 @@ qq_create_listening(qq_cycle_t *cycle)
         ls[i].handler = cycle->current_listening_config->handler;
         ls[i].pool_size = cycle->current_listening_config->pool_size;
 
-        ls[i].post_accept_timeout = QQ_CLIENT_ACCEPT_TIMEOUT;
-
         cycle->current_listening_config = cycle->current_listening_config->next;
     }
 
@@ -451,6 +449,11 @@ qq_close_listening_sockets(qq_cycle_t *cycle)
             if (c->read->active) {
                 qq_epoll_del_event(c->read, QQ_READ_EVENT);
             }
+
+            if (c->pool != NULL && c->type == SOCK_DGRAM) {
+                qq_destroy_pool(c->pool);
+            }
+
             qq_free_connection(c);
             c->fd = (qq_socket_t) -1;
         }

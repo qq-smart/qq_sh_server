@@ -14,7 +14,6 @@ qq_strnlen(u_char *p, size_t n)
     size_t  i;
 
     for (i = 0; i < n; i++) {
-
         if (p[i] == '\0') {
             return i;
         }
@@ -46,6 +45,59 @@ qq_cpystrn(u_char *dst, u_char *src, size_t n)
     return dst;
 }
 
+u_char *
+qq_hex_dump(u_char *dst, u_char *src, size_t len)
+{
+    static u_char  hex[] = "0123456789abcdef";
+
+    while (len--) {
+        *dst++ = hex[*src >> 4];
+        *dst++ = hex[*src++ & 0xf];
+    }
+
+    return dst;
+}
+
+qq_int_t
+qq_str_to_hex(u_char *str, u_char *hex, size_t strlen)
+{
+    if (strlen % 2) {
+        return QQ_ERROR;
+    }
+
+    while (strlen) {
+        if (*str >= 48 && *str <= 57) {
+            *hex = *str - 48;
+        } else if (*str >= 65 && *str <= 70) {
+            *hex = *str - 55;
+        } else if (*str >= 97 && *str <= 102) {
+            *hex = *str - 87;
+        } else {
+            return QQ_ERROR;
+        }
+
+        str ++;
+        *hex = *hex << 4;
+
+        if (*str >= 48 && *str <= 57) {
+            *hex += *str - 48;
+        } else if (*str >= 65 && *str <= 70) {
+            *hex += *str - 55;
+        } else if (*str >= 97 && *str <= 102) {
+            *hex += *str - 87;
+        } else {
+            return QQ_ERROR;
+        }
+
+        str ++;
+        hex ++;
+
+        strlen -= 2;
+    }
+
+    return QQ_OK;
+}
+
 
 void
 qq_str_rbtree_insert_value(qq_rbtree_node_t *temp,
@@ -55,7 +107,6 @@ qq_str_rbtree_insert_value(qq_rbtree_node_t *temp,
     qq_rbtree_node_t      **p;
 
     for ( ;; ) {
-
         n = (qq_str_rbtree_node_t *) node;
         t = (qq_str_rbtree_node_t *) temp;
 

@@ -7,6 +7,7 @@
 #include "qq_config.h"
 #include "qq_core.h"
 
+#include "qq_mysql.h"
 #include "qq_ios_app.h"
 #include "qq_android_app.h"
 #include "qq_wifi_device.h"
@@ -16,6 +17,11 @@
 qq_int_t
 qq_app_init(qq_cycle_t *cycle)
 {
+    if (qq_mysql_init() == QQ_ERROR) {
+        qq_log_error(0, "qq_mysql_init() failed");
+        return QQ_ERROR;
+    }
+
     if (qq_ios_app_init(cycle) == QQ_ERROR) {
         qq_log_error(0, "qq_ios_app_init() failed");
         return QQ_ERROR;
@@ -44,6 +50,7 @@ qq_app_done(qq_cycle_t *cycle)
 {
     qq_log_debug("qq_app_done()");
 
+    qq_mysql_close();
     qq_ios_app_done();
     qq_android_app_done();
     qq_wifi_device_done();

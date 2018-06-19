@@ -15,7 +15,7 @@ build:
 	$(MAKE) -f event/Makefile
 	$(MAKE) -f app/Makefile
 
-	$(CC) objs/*.o -o objs/$(TARGET) -lm
+	$(CC) objs/*.o -o objs/$(TARGET) -lm -lmysqlclient
 
 
 clean:

@@ -42,7 +42,7 @@ typedef void (*qq_connection_handler_pt)(qq_connection_t *c);
 #if (QQ_HAVE_JSON)
 #include "qq_json.h"
 #endif
-
+#include "qq_md5.h"
 #include "qq_errno.h"
 #include "qq_socket.h"
 #include "qq_queue.h"

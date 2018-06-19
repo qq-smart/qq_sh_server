@@ -20,6 +20,7 @@
 /**************** network *******************/
 #define QQ_LISTEN_BACKLOG     511
 
+#define QQ_HAVE_ACCEPT_TIMEOUT     1
 #define QQ_CLIENT_ACCEPT_TIMEOUT   3000
 
 #define QQ_HAVE_REVBUF        0
