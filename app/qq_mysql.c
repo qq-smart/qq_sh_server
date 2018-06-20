@@ -56,7 +56,7 @@ MYSQL_RES *
 qq_mysql_wifi_device_select(char *device_id)
 {
     memset(qq_str, 0, 256);
-    sprintf(qq_str, "SELECT * FROM wifi_device WHERE device_id='%s'", device_id);
+    sprintf(qq_str, "SELECT app_id,app_type FROM wifi_device WHERE device_id='%s'", device_id);
 
     if (mysql_query(qq_mysql, qq_str)) {
         qq_log_error(0, "qq_mysql_wifi_device_select(%s) query failed", device_id);

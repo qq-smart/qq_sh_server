@@ -1,3 +1,12 @@
+#define QQ_APP_TYPE_ANDROID       1
+#define QQ_APP_TYPE_IOS           2
+
+#define QQ_DEVICE_TYPE_WIFI       1
+
+#define QQ_MAIN_APP_FLAGS         0x80000000
+
+
+
 #define QQ_PKG_KEY_CMD                         "cmd"
 #define QQ_PKG_KEY_TIMESTAMP                   "timestamp"
 #define QQ_PKG_KEY_ID                          "id"
@@ -22,5 +31,13 @@
 #define QQ_JSON_PKG_MD5_FAILED_STR_SIZE           sizeof(QQ_JSON_PKG_MD5_FAILED_STR)
 #define QQ_JSON_PKG_DEVICE_NOTHINGNESS_STR        "{\"err\":3,\"errstr\":\"device nothingness\"}"
 #define QQ_JSON_PKG_DEVICE_NOTHINGNESS_STR_SIZE   sizeof(QQ_JSON_PKG_DEVICE_NOTHINGNESS_STR)
-#define QQ_JSON_PKG_DEVICE_CONFLICT_STR           "{\"err\":4,\"errstr\":\"device conflict\"}"
+#define QQ_JSON_PKG_NO_APP                        "{\"err\":4,\"errstr\":\"no app\"}"
+#define QQ_JSON_PKG_NO_APP_SIZE                   sizeof(QQ_JSON_PKG_NO_APP)
+#define QQ_JSON_PKG_APP_OVERRANGING               "{\"err\":5,\"errstr\":\"app overranging\"}"
+#define QQ_JSON_PKG_APP_OVERRANGING_SIZE          sizeof(QQ_JSON_PKG_APP_OVERRANGING)
+#define QQ_JSON_PKG_MAIN_APP_ERROR                "{\"err\":6,\"errstr\":\"main app error\"}"
+#define QQ_JSON_PKG_MAIN_APP_ERROR_SIZE           sizeof(QQ_JSON_PKG_MAIN_APP_ERROR)
+#define QQ_JSON_PKG_DEVICE_CONFLICT_STR           "{\"err\":7,\"errstr\":\"device conflict\"}"
 #define QQ_JSON_PKG_DEVICE_CONFLICT_STR_SIZE      sizeof(QQ_JSON_PKG_DEVICE_CONFLICT_STR)
+#define QQ_JSON_PKG_INSUFFICIENT_MEMORY           "{\"err\":8,\"errstr\":\"insufficient memory\"}"
+#define QQ_JSON_PKG_INSUFFICIENT_MEMORY_SIZE      sizeof(QQ_JSON_PKG_INSUFFICIENT_MEMORY)

@@ -7,8 +7,11 @@
 #include "qq_config.h"
 #include "qq_core.h"
 
+#include "qq_mysql.h"
 #include "qq_wifi_device.h"
-#include "qq_app_package.h"
+#include "qq_ios_app.h"
+#include "qq_android_app.h"
+#include "qq_app_core.h"
 
 
 static void qq_wifi_device_init_connection_handler(qq_connection_t *c);
@@ -23,8 +26,8 @@ static void qq_wifi_device_disconnection_package_process(qq_connection_t *c, cJS
 
 static void qq_wifi_device_close(qq_connection_t *c, qq_int_t reason);
 static qq_int_t qq_wifi_device_md5_confirm(char *id, u_char *pwd);
-static qq_int_t qq_wifi_device_validation_checking(u_char *id);
-static qq_int_t qq_wifi_device_conflict_check(u_char *id, u_char *mac);
+static qq_int_t qq_wifi_device_conflict_confirm(u_char *id, u_char *mac);
+static qq_int_t qq_wifi_device_mysql_confirm(qq_connection_t *c, u_char *id);
 
 static void qq_wifi_device_rbtree_insert_value(qq_rbtree_node_t *temp,
     qq_rbtree_node_t *node, qq_rbtree_node_t *sentinel);
@@ -35,7 +38,7 @@ qq_rbtree_t              qq_wifi_device_rbtree;
 static qq_rbtree_node_t  qq_wifi_device_sentinel;
 
 static char              qq_wifi_device_md5_str[256] = {0};
-static qq_uint_t         qq_wifi_device_md5_id;
+static qq_uint_t         qq_wifi_device_md5_id_str_pos;
 
 qq_int_t
 qq_wifi_device_init(qq_cycle_t *cycle)
@@ -52,9 +55,8 @@ qq_wifi_device_init(qq_cycle_t *cycle)
     qq_rbtree_init(&qq_wifi_device_rbtree, &qq_wifi_device_sentinel,
                     qq_wifi_device_rbtree_insert_value);
 
-    qq_wifi_device_md5_id = strlen(QQ_WIFI_DEVICE_MD5_STR);
-    memcpy(qq_wifi_device_md5_str, QQ_WIFI_DEVICE_MD5_STR, qq_wifi_device_md5_id);
-    qq_wifi_device_md5_id = strlen(QQ_WIFI_DEVICE_MD5_STR);
+    qq_wifi_device_md5_id_str_pos = strlen(QQ_WIFI_DEVICE_MD5_CORE_STR);
+    memcpy(qq_wifi_device_md5_str, QQ_WIFI_DEVICE_MD5_CORE_STR, strlen(QQ_WIFI_DEVICE_MD5_CORE_STR));
 
     return QQ_OK;
 }
@@ -63,6 +65,17 @@ void
 qq_wifi_device_done(void)
 {
     qq_log_debug("qq_wifi_device_done()");
+}
+
+qq_wifi_device_t *
+qq_wifi_device_node(char *id)
+{
+    return NULL;
+}
+
+void
+qq_wifi_device_and_app_associate(void *device_id, void *app_id)
+{
 }
 
 
@@ -88,7 +101,7 @@ qq_wifi_device_pretreatment_process_handler(qq_event_t *rev)
     qq_connection_t        *c;
     ssize_t                 n;
     size_t                  size;
-    qq_wifi_device_info_t  *info;
+    qq_wifi_device_t       *wd;
     qq_listening_t         *ls;
     cJSON                  *root, *cmd;
 
@@ -108,33 +121,26 @@ qq_wifi_device_pretreatment_process_handler(qq_event_t *rev)
         return;
     }
 
-    info = c->data;
-    if (info == NULL) {
-        info = qq_pcalloc(c->pool, sizeof(qq_wifi_device_info_t));
-        if (info == NULL) {
+    wd = c->data;
+    if (wd == NULL) {
+        wd = qq_pcalloc(c->pool, sizeof(qq_wifi_device_t));
+        if (wd == NULL) {
             qq_app_close_connection(c);
             return;
         }
-        c->data = (void *) info;
+        c->data = (void *) wd;
 
         size = ls->pool_size -
-            ((size_t)((uintptr_t)c->data - (uintptr_t)c->pool) + sizeof(qq_wifi_device_info_t));
-        info->buf_start = qq_pnalloc(c->pool, size);
-        if (info->buf_start == NULL) {
+            ((size_t)((uintptr_t)c->data - (uintptr_t)c->pool) + sizeof(qq_wifi_device_t));
+        wd->buf = qq_pnalloc(c->pool, size);
+        if (wd->buf == NULL) {
             qq_app_close_connection(c);
             return;
         }
-        info->buf_end = info->buf_start + size;
-        info->buf_size = size;
-
-        info->tmp_start = info->buf_start;
-        info->tmp_pos = info->buf_start;
-        info->tmp_last = info->buf_start;
-        info->tmp_end = info->buf_end;
-        info->tmp_size = info->buf_size;
+        wd->buf_size = size;
     }
 
-    n = c->recv(c, info->tmp_pos, info->tmp_size);
+    n = c->recv(c, wd->buf, wd->buf_size);
     if (n == QQ_AGAIN) {
         qq_log_debug("recv not reday");
         return;
@@ -150,9 +156,12 @@ qq_wifi_device_pretreatment_process_handler(qq_event_t *rev)
         return;
     }
 
-    root = cJSON_Parse(info->tmp_pos);
+    wd->buf_ndata = n;
+
+    root = cJSON_Parse(wd->buf);
     if(root == NULL) {
-        qq_log_error(0, "qq_wifi_device_process_connection_package()->cJSON_Parse() failed, before: %s", cJSON_GetErrorPtr());
+        qq_log_error(0, "qq_wifi_device_process_connection_package()->cJSON_Parse() failed, before: %s",
+            cJSON_GetErrorPtr());
     }
     else {
         cmd = cJSON_GetObjectItem(root, QQ_PKG_KEY_CMD);
@@ -161,7 +170,7 @@ qq_wifi_device_pretreatment_process_handler(qq_event_t *rev)
                 qq_wifi_device_connection_package_process(c, root);
             }
             else {
-                if (info->connection && strcmp(cmd->valuestring, QQ_PKG_VALUE_CMD_DEV_REPORT_STA) == 0) {
+                if (wd->connection && strcmp(cmd->valuestring, QQ_PKG_VALUE_CMD_DEV_REPORT_STA) == 0) {
                     qq_wifi_device_status_package_process(c, root);
                 }
             }
@@ -176,7 +185,7 @@ qq_wifi_device_normal_process_handler(qq_event_t *rev)
     qq_connection_t        *c;
     ssize_t                 n;
     size_t                  size;
-    qq_wifi_device_info_t  *info;
+    qq_wifi_device_t       *wd;
     cJSON                  *root, *cmd;
 
     qq_log_debug("qq_wifi_device_normal_process_handler()");
@@ -192,8 +201,8 @@ qq_wifi_device_normal_process_handler(qq_event_t *rev)
         return;
     }
 
-    info = c->data;
-    n = c->recv(c, info->tmp_pos, info->tmp_size);
+    wd = c->data;
+    n = c->recv(c, wd->buf, wd->buf_size);
     if (n == QQ_AGAIN) {
         qq_log_debug("recv not reday");
         return;
@@ -209,7 +218,9 @@ qq_wifi_device_normal_process_handler(qq_event_t *rev)
         return;
     }
 
-    root = cJSON_Parse(info->tmp_pos);
+    wd->buf_ndata = n;
+
+    root = cJSON_Parse(wd->buf);
     if(root == NULL) {
         qq_log_error(0, "qq_wifi_device_process_connection_package()->cJSON_Parse() failed, before: %s", cJSON_GetErrorPtr());
     }
@@ -239,7 +250,7 @@ qq_wifi_device_write_event_handler(qq_event_t *wev)
 static void
 qq_wifi_device_connection_package_process(qq_connection_t *c, cJSON *root)
 {
-    qq_wifi_device_info_t  *info;
+    qq_wifi_device_t       *wd;
     qq_int_t                reason;
     cJSON                  *json_id, *json_mac, *json_pwd;
     u_char                  id[16], mac[6], pwd[16];
@@ -267,20 +278,20 @@ qq_wifi_device_connection_package_process(qq_connection_t *c, cJSON *root)
             return;
         }
 
-        if (qq_wifi_device_validation_checking(id) == QQ_WIFI_DEVICE_NOTHINGNESS) {
-            qq_wifi_device_close(c, QQ_WIFI_DEVICE_NOTHINGNESS);
+        if (qq_wifi_device_conflict_confirm(id, mac) == QQ_WIFI_DEVICE_CONFLICT) {
+            qq_wifi_device_close(c, QQ_WIFI_DEVICE_CONFLICT);
             return;
         }
 
-        if (qq_wifi_device_conflict_check(id, mac) == QQ_WIFI_DEVICE_CONFLICT) {
-            qq_wifi_device_close(c, QQ_WIFI_DEVICE_CONFLICT);
+        if ((reason = qq_wifi_device_mysql_confirm(c, json_id->valuestring)) != QQ_OK) {
+            qq_wifi_device_close(c, reason);
             return;
         }
 
         c->send(c, QQ_JSON_PKG_OK_STR, QQ_JSON_PKG_OK_STR_SIZE);
 
-        info = c->data;
-        info->connection = 1;
+        wd = c->data;
+        wd->connection = 1;
         qq_event_add_timer(c->read, QQ_WIFI_DEVICE_FIRST_STATUS_TIMEOUT);
         return;
     }
@@ -291,7 +302,58 @@ qq_wifi_device_connection_package_process(qq_connection_t *c, cJSON *root)
 static void
 qq_wifi_device_status_package_process(qq_connection_t *c, cJSON *root)
 {
+    qq_wifi_device_t  *wd;
+    qq_int_t           i, app_type;
+    u_char            *p;
+
     qq_log_debug("qq_wifi_device_status_package_process(%s)", root);
+
+    wd = c->data;
+    if (wd->first_status == 0) {
+        wd->first_status = 1;
+
+        if (wd->buf_size < (wd->buf_ndata * 2)) {
+            qq_wifi_device_close(c, QQ_WIFI_DEVICE_INSUFFICIENT_MEMORY);
+            return;
+        }
+
+        wd->status = wd->buf;
+        wd->status_size = wd->buf_ndata;
+        wd->buf = wd->status + wd->status_size;
+        wd->buf_size = wd->buf_ndata;
+
+        for (i = 0;i < QQ_WIFI_DEVICE_MAX_APP_NUMBER;i++) {
+            if (i == wd->napp) {
+                break;
+            }
+
+            if (wd->app[i].app != NULL) {
+                app_type = wd->app[i].app_type & ~QQ_MAIN_APP_FLAGS;
+
+                if (app_type == QQ_APP_TYPE_ANDROID) {
+                    qq_android_app_and_device_associate(wd->app[i].app, wd);
+                }
+                else if (app_type == QQ_APP_TYPE_IOS) {
+                    qq_ios_app_and_device_associate(wd->app[i].app, wd);
+                }
+            }
+        }
+    }
+    else {
+        p = wd->status;
+        wd->status = wd->buf;
+        wd->buf = p;
+    }
+
+    for (i = 0;i < QQ_WIFI_DEVICE_MAX_APP_NUMBER;i++) {
+        if (i == wd->napp) {
+            break;
+        }
+
+        if (wd->app[i].app != NULL) {
+            c->send(wd->app[i].app, wd->status, wd->status_size);
+        }
+    }
 }
 
 static void
@@ -314,7 +376,7 @@ qq_wifi_device_disconnection_package_process(qq_connection_t *c, cJSON *root)
 {
     qq_log_debug("qq_wifi_device_disconnection_package_process(%s)", root);
 
-	qq_wifi_device_close(c, QQ_WIFI_DEVICE_DISCONNECTION);
+    qq_wifi_device_close(c, QQ_WIFI_DEVICE_DISCONNECTION);
 }
 
 
@@ -323,12 +385,28 @@ qq_wifi_device_close(qq_connection_t *c, qq_int_t reason)
 {
     switch (reason) {
         case QQ_WIFI_DEVICE_PKG_FAILED:
-            break;
+            c->send(c, QQ_JSON_PKG_PKG_FAILED_STR, QQ_JSON_PKG_PKG_FAILED_STR_SIZE);
+            return;
         case QQ_WIFI_DEVICE_MD5_FAILED:
+            c->send(c, QQ_JSON_PKG_MD5_FAILED_STR, QQ_JSON_PKG_MD5_FAILED_STR_SIZE);
             break;
         case QQ_WIFI_DEVICE_NOTHINGNESS:
+            c->send(c, QQ_JSON_PKG_DEVICE_NOTHINGNESS_STR, QQ_JSON_PKG_DEVICE_NOTHINGNESS_STR_SIZE);
+            break;
+        case QQ_WIFI_DEVICE_NO_APP:
+            c->send(c, QQ_JSON_PKG_NO_APP, QQ_JSON_PKG_NO_APP_SIZE);
+            break;
+        case QQ_WIFI_DEVICE_APP_OVERRANGING:
+            c->send(c, QQ_JSON_PKG_APP_OVERRANGING, QQ_JSON_PKG_APP_OVERRANGING_SIZE);
+            break;
+        case QQ_WIFI_DEVICE_MAIN_APP_ERROR:
+            c->send(c, QQ_JSON_PKG_MAIN_APP_ERROR, QQ_JSON_PKG_MAIN_APP_ERROR_SIZE);
             break;
         case QQ_WIFI_DEVICE_CONFLICT:
+            c->send(c, QQ_JSON_PKG_DEVICE_CONFLICT_STR, QQ_JSON_PKG_DEVICE_CONFLICT_STR_SIZE);
+            break;
+        case QQ_WIFI_DEVICE_INSUFFICIENT_MEMORY:
+            c->send(c, QQ_JSON_PKG_INSUFFICIENT_MEMORY, QQ_JSON_PKG_INSUFFICIENT_MEMORY_SIZE);
             break;
         case QQ_WIFI_DEVICE_CONNECTION_CLOSE:
             break;
@@ -337,6 +415,8 @@ qq_wifi_device_close(qq_connection_t *c, qq_int_t reason)
         case QQ_WIFI_DEVICE_DISCONNECTION:
             break; 
     }
+
+    qq_app_close_connection(c);
 }
 
 static qq_int_t
@@ -345,8 +425,7 @@ qq_wifi_device_md5_confirm(char *id, u_char *pwd)
     MD5_CTX   md5;
     u_char    md5_pwd[16];
 
-    memcpy(&qq_wifi_device_md5_str[qq_wifi_device_md5_id],
-        id, 16);
+    memcpy(&qq_wifi_device_md5_str[qq_wifi_device_md5_id_str_pos], id, 32);
 
     MD5Init(&md5);
     MD5Update(&md5, qq_wifi_device_md5_str, strlen((char *)qq_wifi_device_md5_str));
@@ -360,16 +439,10 @@ qq_wifi_device_md5_confirm(char *id, u_char *pwd)
 }
 
 static qq_int_t
-qq_wifi_device_validation_checking(u_char *id)
-{
-    return QQ_OK;
-}
-
-static qq_int_t
-qq_wifi_device_conflict_check(u_char *id, u_char *mac)
+qq_wifi_device_conflict_confirm(u_char *id, u_char *mac)
 {
     qq_wifi_device_rbtree_node_t  *node;
-    qq_wifi_device_info_t         *info;
+    qq_wifi_device_t              *wd;
 
     node = qq_wifi_device_rbtree_lookup(&qq_wifi_device_rbtree, id);
 
@@ -377,13 +450,66 @@ qq_wifi_device_conflict_check(u_char *id, u_char *mac)
         return QQ_OK;
     }
     else {
-        info = (qq_wifi_device_info_t *) ((char *) node - offsetof(qq_wifi_device_info_t, rbtree));
-        if (memcmp(info->mac, mac, 6) == 0) {
+        wd = (qq_wifi_device_t *) ((char *) node - offsetof(qq_wifi_device_t, rbtree));
+        if (memcmp(wd->mac, mac, 6) == 0) {
             return QQ_OK;
         }
     }
 
     return QQ_WIFI_DEVICE_CONFLICT;
+}
+
+static qq_int_t
+qq_wifi_device_mysql_confirm(qq_connection_t *c, u_char *id)
+{
+    MYSQL_RES              *res;
+    MYSQL_ROW               row;
+    qq_uint_t               n, i;
+    qq_wifi_device_t       *wd;
+    qq_int_t                reason, main_app, app_type;
+
+    reason = QQ_OK;
+    main_app = 0;
+
+    res = qq_mysql_wifi_device_select(id);
+    if (res == NULL) {
+        return QQ_WIFI_DEVICE_NOTHINGNESS;
+    }
+
+    n = mysql_num_rows(res);
+    if (n == 0) {
+        reason = QQ_WIFI_DEVICE_NO_APP;
+    }
+    else if (n > QQ_WIFI_DEVICE_MAX_APP_NUMBER) {
+        reason = QQ_WIFI_DEVICE_APP_OVERRANGING;
+    }
+
+    if (reason == QQ_OK) {
+        wd = c->data;
+        wd->napp = n;
+
+        i = 0;
+        while ((row = mysql_fetch_row(res)) != NULL) {
+            wd->app[i].app_type = (int) *row[1];
+            app_type = wd->app[i].app_type & ~QQ_MAIN_APP_FLAGS;
+            main_app += (wd->app[i].app_type & QQ_MAIN_APP_FLAGS) ? 1 : 0;
+
+            if (app_type == QQ_APP_TYPE_ANDROID) {
+                wd->app[i].app = (void *) qq_android_app_node((char *) row[0]);
+            }
+            else if (app_type == QQ_APP_TYPE_IOS) {
+                wd->app[i].app = (void *) qq_ios_app_node((char *) row[0]);
+            }
+        }
+    }
+
+    if (main_app != 1) {
+        reason = QQ_WIFI_DEVICE_MAIN_APP_ERROR;
+    }
+
+    mysql_free_result(res);
+
+    return reason;
 }
 
 

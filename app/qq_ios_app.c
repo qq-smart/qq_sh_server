@@ -8,7 +8,7 @@
 #include "qq_core.h"
 
 #include "qq_ios_app.h"
-#include "qq_app_package.h"
+#include "qq_app_core.h"
 
 
 static void qq_ios_app_init_connection_handler(qq_connection_t *c);
@@ -37,6 +37,17 @@ void
 qq_ios_app_done(void)
 {
     qq_log_debug("qq_ios_app_done()");
+}
+
+qq_ios_app_t *
+qq_ios_app_node(char *id)
+{
+    return NULL;
+}
+
+void
+qq_ios_app_and_device_associate(void *app_id, void *device_id)
+{
 }
 
 

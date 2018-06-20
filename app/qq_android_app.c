@@ -36,6 +36,17 @@ qq_android_app_done(void)
     qq_log_debug("qq_android_app_done()");
 }
 
+qq_android_app_t *
+qq_android_app_node(char *id)
+{
+    return NULL;
+}
+
+void
+qq_android_app_and_device_associate(void *app_id, void *device_id)
+{
+}
+
 
 static void
 qq_android_app_init_connection_handler(qq_connection_t *c)
