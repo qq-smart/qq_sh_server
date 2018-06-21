@@ -11,6 +11,8 @@
 /**************** core *******************/
 #define QQ_CONNECTION_NUMBER  20000
 
+#define QQ_HAVE_TIMESTAMP_JSON_PKG   1
+
 
 /**************** json *******************/
 #define QQ_HAVE_JSON       1

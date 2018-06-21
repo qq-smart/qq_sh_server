@@ -9,7 +9,8 @@
 
 #define QQ_PKG_KEY_CMD                         "cmd"
 #define QQ_PKG_KEY_TIMESTAMP                   "timestamp"
-#define QQ_PKG_KEY_ID                          "id"
+#define QQ_PKG_KEY_DEV_ID                      "dev_id"
+#define QQ_PKG_KEY_APP_ID                      "app_id"
 #define QQ_PKG_KEY_MAC                         "mac"
 #define QQ_PKG_KEY_PWD                         "pwd"
 

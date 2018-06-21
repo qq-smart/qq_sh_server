@@ -11,6 +11,10 @@
 volatile qq_msec_t      qq_current_msec;
 
 volatile qq_str_t       qq_cached_err_log_time;
+#if (QQ_HAVE_TIMESTAMP_JSON_PKG)
+char                    qq_timestamp_json_pkg[255] = {0};
+size_t                  qq_timestamp_json_pkg_size;
+#endif
 static   u_char         cached_err_log_time[sizeof("1970/01/01_00:00:00")];
 
 
@@ -37,6 +41,11 @@ qq_time_update(void)
     msec = tv.tv_usec / 1000;
 
     qq_current_msec = (qq_msec_t) sec * 1000 + msec;
+#if (QQ_HAVE_TIMESTAMP_JSON_PKG)
+    sprintf(qq_timestamp_json_pkg, "{\"timestamp\":%lu}", qq_current_msec);
+    qq_timestamp_json_pkg_size = strlen(qq_timestamp_json_pkg) + 1;
+#endif
+
 
     qq_localtime(sec, &t);
 

@@ -19,6 +19,9 @@ void qq_localtime(time_t t, struct tm *tp);
 
 extern volatile qq_str_t    qq_cached_err_log_time;
 extern volatile qq_msec_t   qq_current_msec;
-
+#if (QQ_HAVE_TIMESTAMP_JSON_PKG)
+extern char                 qq_timestamp_json_pkg[255];
+extern size_t               qq_timestamp_json_pkg_size;
+#endif
 
 #endif /* _QQ_TIME_H_INCLUDED_ */

@@ -257,7 +257,7 @@ qq_wifi_device_connection_package_process(qq_connection_t *c, cJSON *root)
 
     qq_log_debug("qq_wifi_device_connection_package_process(%s)", root);
 
-    json_id = cJSON_GetObjectItem(root, QQ_PKG_KEY_ID);
+    json_id = cJSON_GetObjectItem(root, QQ_PKG_KEY_DEV_ID);
     json_mac = cJSON_GetObjectItem(root, QQ_PKG_KEY_MAC);
     json_pwd = cJSON_GetObjectItem(root, QQ_PKG_KEY_PWD);
 
@@ -354,21 +354,18 @@ qq_wifi_device_status_package_process(qq_connection_t *c, cJSON *root)
             c->send(wd->app[i].app, wd->status, wd->status_size);
         }
     }
+
+    qq_event_add_timer(c->read, QQ_WIFI_DEVICE_PING_TIMEOUT);
 }
 
 static void
 qq_wifi_device_ping_package_process(qq_connection_t *c, cJSON *root)
 {
-    char *out;
-
     qq_log_debug("qq_wifi_device_ping_package_process(%s)", root);
 
     qq_event_add_timer(c->read, QQ_WIFI_DEVICE_PING_TIMEOUT);
 
-    cJSON_AddNumberToObject(root, QQ_PKG_KEY_TIMESTAMP, qq_current_msec);
-    out = cJSON_Print(root);
-
-    c->send(c, out, strlen(out));
+    c->send(c, qq_timestamp_json_pkg, qq_timestamp_json_pkg_size);
 }
 
 static void
