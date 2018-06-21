@@ -1,6 +1,0 @@
-####################################################################################################
-create table android_app (id int primary key not null auto_increment,app_id char(37),device_id char(33),device_type int) default charset=utf8;
-                                              # Create android_app table
-desc android_app;                             # Look at the android_app table
-drop table android_app;                       # Delete a table "android_app"
-select * from android_app;                    # Look at the android_app table context 

@@ -1,0 +1,25 @@
+1、概述：
+  connection(连接包)，APP或设备通过发送连接包与服务器建立连接，连接包中携带相关的验证信息供服务器验证，服务器通过验证后才可以建立连接。APP或设备与服务器建立TCP SOCKET连接后,必须在指定时间(服务器默认设置的超时时间为3秒)内发送连接包，否则服务器会进行超时处理关闭该TCP SOCKET连接，连接包是建立TCP SOCKET连接后发送的第一个包。
+
+
+2、建立包格式：
+  连接包由APP或设备建立，包的信息以JSON格式组织，并发送到服务器，下面分别列举了APP以及设备建立的连接包格式
+
+2.1.设备建立的连接包：
+  {
+    "cmd":"connection",                            // 命令字段：指明包的作用，connection表示为连接服务器
+    "dev_id":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",  // ID字段：指明设备的唯一身份号码，由32字符组成，这个设备ID由MD5算法生成
+    "mac":"xxxxxxxxxxxx",                          // MAC字段：该字段可进一步进行身份识别，在服务器中主要做重复挂载识别处理
+    "pwd":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"      // 密码字段：把dev_id与给定的字符串进行MD5运算，生成该密码值供服务器验证
+  }
+
+2.2.APP建立的连接包：
+  {
+    "cmd":"connection",                            // 命令字段：指明包的作用，connection表示为连接服务器
+    "app_id":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",  // ID字段：指明app的唯一身份号码，由36个字符组成，这个APP ID由是一个UUID字符串
+    "pwd":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"      // 密码字段：把app_id与给定的字符串进行MD5运算，生成该密码值供服务器验证
+  }
+
+
+3、返回包格式：
+  返回包由服务器建立，请具体参阅"error"文档
