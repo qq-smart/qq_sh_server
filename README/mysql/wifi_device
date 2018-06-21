@@ -1,0 +1,6 @@
+####################################################################################################
+create table wifi_device (id int primary key not null auto_increment,device_id char(33),app_id char(37),app_type int) default charset=utf8;
+                                              # Create wifi_device table
+desc wifi_device;                             # Look at the wifi_device table
+drop table wifi_device;                       # Delete a table "wifi_device"
+select * from wifi_device;                    # Look at the wifi_device table context 
